@@ -410,13 +410,13 @@ function FloatingChatSimple() {
 
   return (
     <>
-      {/* Botón flotante con tooltip */}
+      {/* Botón flotante con tooltip - posición responsive */}
       {!chatState.isOpen && (
-        <div className="fixed bottom-12 right-8 z-50">
-          {/* Tooltip - visible solo cuando no se ha hecho scroll */}
+        <div className="fixed bottom-4 right-4 sm:bottom-8 sm:right-6 lg:bottom-12 lg:right-8 z-40">
+          {/* Tooltip - visible solo cuando no se ha hecho scroll y responsive */}
           {showTooltipOnScroll && (
-            <div className="absolute top-1/2 right-full transform -translate-y-1/2 mr-4 animate-in fade-in slide-in-from-right-2 duration-300">
-              <div className="bg-white text-gray-800 px-4 py-2 rounded-full shadow-lg border border-gray-200 whitespace-nowrap text-sm font-medium">
+            <div className="absolute top-1/2 right-full transform -translate-y-1/2 mr-2 lg:mr-4 animate-in fade-in slide-in-from-right-2 duration-300 hidden sm:block">
+              <div className="bg-white text-gray-800 px-3 py-2 lg:px-4 rounded-full shadow-lg border border-gray-200 whitespace-nowrap text-xs lg:text-sm font-medium">
                 ¡Pregúntame lo que necesites!
                 <div className="absolute top-1/2 left-full transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-white"></div>
                 <div className="absolute top-1/2 left-full transform -translate-y-1/2 translate-x-[-1px] w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-gray-200"></div>
@@ -428,12 +428,12 @@ function FloatingChatSimple() {
             onClick={() => dispatch({ type: 'OPEN_CHAT' })}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-xl transition-all duration-300 transform hover:scale-110 hover:shadow-2xl"
+            className="chatbot-button-small bg-blue-500 hover:bg-blue-600 text-white p-3 sm:p-4 rounded-full shadow-xl transition-all duration-300 transform hover:scale-110 hover:shadow-2xl"
             aria-label="Abrir chat de asistencia"
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
-              className={`w-6 h-6 transition-transform duration-300 ${isHovered ? 'scale-110 rotate-12' : ''}`} 
+              className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${isHovered ? 'scale-110 rotate-12' : ''}`} 
               viewBox="0 0 24 24" 
               fill="none" 
               stroke="currentColor" 
@@ -460,8 +460,8 @@ function FloatingChatSimple() {
       {chatState.isOpen && (
         <div 
           ref={chatRef} 
-          className="fixed bottom-16 right-6 bg-white rounded-3xl shadow-2xl border-2 border-gray-300 w-[520px] max-h-[720px] transition-all duration-300 overflow-hidden ring-4 ring-gray-900/10"
-          style={{ zIndex: 9999 }}
+          className="chatbot-modal-small fixed bottom-2 right-2 sm:bottom-4 sm:right-4 lg:bottom-16 lg:right-6 bg-white rounded-2xl lg:rounded-3xl shadow-2xl border-2 border-gray-300 w-[95vw] max-w-[520px] sm:w-[450px] lg:w-[520px] h-[85vh] max-h-[600px] lg:max-h-[720px] transition-all duration-300 overflow-hidden ring-4 ring-gray-900/10"
+          style={{ zIndex: 1000 }}
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 rounded-t-3xl px-5 py-4 flex items-center justify-between border-b border-slate-600/30">

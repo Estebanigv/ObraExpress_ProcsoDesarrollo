@@ -8,44 +8,35 @@ export function CallWidget() {
   const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
-    const initializeWidget = () => {
-      const widgetContent = document.getElementById('widget-content');
-      if (!widgetContent) return;
-
-      // Crear el elemento del widget
-      const widget = document.createElement('elevenlabs-convai');
-      widget.setAttribute('agent-id', 'agent_4301k2mkrbt4f6c86gj7avhrerq2');
-      widget.style.width = '100%';
-      widget.style.height = '100%';
+    // DESHABILITADO: Widget de ElevenLabs deshabilitado para evitar elementos extraños en la UI
+    console.log('🚫 Widget ElevenLabs deshabilitado - usando fallback telefónico directo');
+    setShowFallback(true);
+    setIsWidgetLoaded(false);
+    
+    // Limpiar cualquier elemento elevenlabs que pueda existir
+    const cleanupElevenLabsElements = () => {
+      const elevenLabsElements = document.querySelectorAll('elevenlabs-convai');
+      elevenLabsElements.forEach(el => {
+        console.log('🧹 Eliminando elemento ElevenLabs encontrado');
+        el.remove();
+      });
       
-      // Limpiar contenido anterior
-      widgetContent.innerHTML = '';
-      widgetContent.appendChild(widget);
-
-      console.log('🚀 Widget ElevenLabs creado dinámicamente');
-      
-      // Verificar si se carga correctamente
-      const checkWidget = () => {
-        const iframe = widget.querySelector('iframe');
-        if (iframe || widget.shadowRoot) {
-          console.log('✅ Widget ElevenLabs cargado correctamente');
-          setIsWidgetLoaded(true);
-          setShowFallback(false);
-        } else {
-          console.log('⚠️ Widget ElevenLabs no se cargó, mostrando fallback');
-          setShowFallback(true);
-        }
-      };
-
-      // Verificar la carga después de un delay
-      setTimeout(checkWidget, 2000);
-      setTimeout(checkWidget, 5000); // Segundo chequeo
+      // También limpiar posibles iframes o elementos shadow
+      const iframes = document.querySelectorAll('iframe[src*="elevenlabs"]');
+      iframes.forEach(iframe => {
+        console.log('🧹 Eliminando iframe ElevenLabs');
+        iframe.remove();
+      });
     };
 
-    // Inicializar después de que el componente se monte
-    const timer = setTimeout(initializeWidget, 500);
+    cleanupElevenLabsElements();
+    
+    // Limpiar cada 5 segundos por si aparecen nuevos elementos
+    const cleanupInterval = setInterval(cleanupElevenLabsElements, 5000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearInterval(cleanupInterval);
+    };
   }, []);
 
   return (

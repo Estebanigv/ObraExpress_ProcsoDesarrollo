@@ -192,14 +192,21 @@ export const CoordinadorDespacho: React.FC<DespachoModalProps> = ({ isOpen, onCl
     const isThursday = dayOfWeek === 4;
     const isPast = checkDate < today;
     const isToday = checkDate.getTime() === today.getTime();
+    const currentHour = new Date().getHours();
     
     if (isThursday) {
       if (isPast) {
         return 'past-thursday';
       }
-      if (today.getDay() === 3 && checkDate.getTime() - today.getTime() <= 24 * 60 * 60 * 1000) {
+      // Si es hoy jueves y aún no han pasado las 18:00, está disponible
+      if (isToday && currentHour < 18) {
+        return 'available-thursday';
+      }
+      // Si es hoy jueves pero ya pasaron las 18:00, no disponible
+      if (isToday && currentHour >= 18) {
         return 'unavailable-thursday';
       }
+      // Todos los jueves futuros están disponibles
       return 'available-thursday';
     }
     

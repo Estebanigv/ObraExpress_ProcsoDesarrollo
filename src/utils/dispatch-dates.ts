@@ -87,23 +87,20 @@ export function getNextDispatchDate(productType: string = 'policarbonato'): Date
   
   // Para policarbonato específicamente, aplicar regla especial
   if (productType.toLowerCase().includes('policarbonato')) {
-    // Si es miércoles, pasa al jueves siguiente (no al de esta semana)
-    if (currentDay === 3) {
-      daysToAdd = 8; // Saltar al jueves de la siguiente semana
-      const nextDispatchDate = new Date(today);
-      nextDispatchDate.setDate(today.getDate() + daysToAdd);
-      return nextDispatchDate;
-    }
-    
-    // Si es jueves, pasa al jueves de la próxima semana
-    if (currentDay === 4) {
+    // Si es jueves y ya pasó la hora límite, ir al jueves siguiente
+    if (currentDay === 4 && rule.cutoffHour && currentHour >= rule.cutoffHour) {
       daysToAdd = 7; // Jueves de la próxima semana
       const nextDispatchDate = new Date(today);
       nextDispatchDate.setDate(today.getDate() + daysToAdd);
       return nextDispatchDate;
     }
     
-    // Para cualquier otro día, buscar el próximo jueves
+    // Si es jueves y aún no pasa la hora límite, despacho hoy
+    if (currentDay === 4 && rule.cutoffHour && currentHour < rule.cutoffHour) {
+      return today;
+    }
+    
+    // Para cualquier otro día, buscar el próximo jueves disponible
     for (let i = 1; i <= 14; i++) {
       const checkDate = new Date(today);
       checkDate.setDate(today.getDate() + i);

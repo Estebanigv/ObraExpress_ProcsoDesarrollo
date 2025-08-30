@@ -184,6 +184,33 @@ export default function RootLayout({
         <meta httpEquiv="X-Frame-Options" content="SAMEORIGIN" />
         <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
         
+        {/* Bloquear scripts de ElevenLabs */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            // Bloquear ElevenLabs completamente
+            if (typeof window !== 'undefined') {
+              window.ElevenLabs = null;
+              
+              // Bloquear la creación de elementos elevenlabs-convai
+              const originalCreateElement = document.createElement;
+              document.createElement = function(tagName) {
+                if (typeof tagName === 'string' && tagName.toLowerCase().includes('elevenlabs')) {
+                  console.warn('🚫 Bloqueado intento de crear elemento ElevenLabs');
+                  return document.createElement('div'); // Devolver un div vacío en su lugar
+                }
+                return originalCreateElement.apply(this, arguments);
+              };
+              
+              // Limpiar periódicamente elementos de ElevenLabs
+              const cleanupElevenLabs = () => {
+                const elements = document.querySelectorAll('elevenlabs-convai, [class*="elevenlabs"], [id*="elevenlabs"]:not(#elevenlabs-widget-container)');
+                elements.forEach(el => el.remove());
+              };
+              setInterval(cleanupElevenLabs, 1000);
+            }
+          `
+        }} />
+        
         {/* Performance and SEO */}
         <meta name="format-detection" content="telephone=yes, email=yes, address=yes" />
         <meta name="mobile-web-app-capable" content="yes" />

@@ -101,11 +101,22 @@ function DispatchCalendarModal({ isOpen, onClose, onDateSelect, productType = "P
     const isPast = checkDate < today;
     const isToday = checkDate.getTime() === today.getTime();
     
-    if (isToday) return 'today';
-    
     // Usar las reglas de despacho configuradas
     const rule = getDispatchRuleForProduct(currentProductType);
     
+    if (isToday && rule.availableDays.includes(dayOfWeek)) {
+      // Si es hoy y es un día disponible, verificar si aún no pasó la hora límite
+      const currentHour = new Date().getHours();
+      if (rule.cutoffHour && currentHour < rule.cutoffHour) {
+        return 'available'; // Disponible hoy
+      } else {
+        return 'today'; // Es hoy pero ya pasó la hora límite
+      }
+    }
+    
+    if (isToday) return 'today';
+    
+    // Para fechas futuras, verificar si el día de la semana es disponible
     if (rule.availableDays.includes(dayOfWeek) && !isPast) {
       return 'available';
     }
@@ -425,7 +436,16 @@ function DispatchCalendarModal({ isOpen, onClose, onDateSelect, productType = "P
             let buttonClass = 'h-8 w-8 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center relative ';
             
             if (!isCurrentMonth) {
-              buttonClass += 'text-gray-300 cursor-default';
+              // Para fechas de otros meses, verificar si son jueves disponibles
+              if (status === 'available') {
+                if (isSelected) {
+                  buttonClass += 'bg-emerald-600 text-white font-bold ring-2 ring-emerald-300 shadow-lg transform scale-110 hover:scale-150 hover:shadow-2xl cursor-pointer transition-all duration-300';
+                } else {
+                  buttonClass += 'border-2 border-emerald-500 text-emerald-600 hover:border-emerald-600 hover:text-emerald-700 cursor-pointer font-bold hover:shadow-lg hover:scale-110 hover:bg-emerald-50 bg-white transform transition-all duration-300';
+                }
+              } else {
+                buttonClass += 'text-gray-300 cursor-default';
+              }
             } else if (status === 'today') {
               buttonClass += 'border-2 border-blue-500 text-blue-600 font-bold bg-white';
             } else if (status === 'available') {
@@ -448,7 +468,8 @@ function DispatchCalendarModal({ isOpen, onClose, onDateSelect, productType = "P
                 className={buttonClass}
                 title={
                   status === 'today' ? `Hoy - ${date.getDate()}` :
-                  status === 'available' ? `Despacho disponible - ${date.getDate()}` :
+                  status === 'available' ? 
+                    `Despacho disponible - ${date.getDate()}${!isCurrentMonth ? ` (${date.toLocaleDateString('es-CL', { month: 'short' })})` : ''}` :
                   `${date.getDate()} - No disponible`
                 }
               >

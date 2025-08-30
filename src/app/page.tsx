@@ -875,12 +875,12 @@ ${formData.comentarios}
       >
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-br from-yellow-400/20 to-orange-400/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-gradient-to-bl from-blue-400/10 to-yellow-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-br from-yellow-400/20 to-orange-400/20 rounded-full blur-3xl animate-gentle-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-gradient-to-bl from-blue-400/10 to-yellow-400/10 rounded-full blur-3xl animate-gentle-pulse" style={{ animationDelay: '2s' }}></div>
         </div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-12 gap-4 laptop-13:gap-5 lg:gap-6 xl:gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-12 gap-3 laptop-13:gap-4 lg:gap-5 xl:gap-6 items-center">
             <div className="xl:col-span-7 text-center xl:text-left px-2 sm:px-4 xl:px-0">
               <div className="mb-4 md:mb-6 animate-fade-in">
                 <p className="text-base sm:text-lg md:text-xl text-white font-medium leading-relaxed max-w-2xl mx-auto xl:mx-0">
@@ -974,7 +974,7 @@ ${formData.comentarios}
                 >
                   <span className="relative z-10 flex items-center justify-center">
                     <div className="w-5 h-5 mr-3 relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-yellow-300 rounded-full animate-pulse"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-yellow-300 rounded-full animate-soft-glow"></div>
                       <svg className="relative w-5 h-5 text-slate-900 transition-transform group-hover:rotate-12" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z"/>
                       </svg>
@@ -990,7 +990,7 @@ ${formData.comentarios}
               {/* Badge líder - posicionado a mitad de altura del formulario */}
               <div className="mb-6 md:mb-8 animate-slide-up-delay">
                 <div className="inline-flex items-center px-4 py-2 bg-yellow-500/20 backdrop-blur-sm border border-yellow-400/30 rounded-full">
-                  <span className="w-3 h-3 bg-yellow-400 rounded-full mr-3 animate-pulse"></span>
+                  <span className="w-3 h-3 bg-yellow-400 rounded-full mr-3 animate-gentle-pulse"></span>
                   <p className="text-sm md:text-base text-yellow-100 font-semibold uppercase tracking-wide">
                     Líder en Materiales de Construcción
                   </p>
@@ -1411,7 +1411,7 @@ ${formData.comentarios}
                     className="group bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-300 hover:border-gray-400 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
                   >
                     <span className="flex items-center justify-center gap-2">
-                      <svg className="w-5 h-5 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
                       Llámanos Ahora
@@ -2298,7 +2298,7 @@ ${formData.comentarios}
               
               {/* Status Indicator */}
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-gentle-pulse"></div>
                 <span className="text-sm font-medium text-gray-700">GPS logística de vanguardia</span>
               </div>
             </div>
@@ -2519,7 +2519,7 @@ ${formData.comentarios}
                 {/* Badge de categoría sobre la imagen */}
                 <div className="absolute top-6 left-6">
                   <div className="flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2">
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-gentle-pulse" />
                     <span className="text-yellow-400 font-semibold text-sm uppercase tracking-wider">
                       {selectedProject.category}
                     </span>
