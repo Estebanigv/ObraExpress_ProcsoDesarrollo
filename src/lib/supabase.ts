@@ -1,21 +1,41 @@
 import { createClient } from '@supabase/supabase-js'
-import { getSupabaseConfig, checkSupabaseConfig } from './env-validation'
+import { isSupabaseConfigured } from './env-validation'
 
-// Validar configuración al iniciar
-if (typeof window === 'undefined') {
-  // Solo validar en el servidor para no exponer información en el cliente
+// Configuración por defecto para builds sin variables de entorno
+const defaultUrl = 'https://placeholder.supabase.co'
+const defaultKey = 'placeholder-key-for-build-only'
+
+let supabaseUrl = defaultUrl
+let supabaseAnonKey = defaultKey
+let supabaseServiceKey = undefined
+
+// Solo obtener configuración real si está disponible
+if (isSupabaseConfigured()) {
   try {
-    checkSupabaseConfig()
+    const { getSupabaseConfig, checkSupabaseConfig } = require('./env-validation')
+    
+    // Validar configuración al iniciar
+    if (typeof window === 'undefined') {
+      // Solo validar en el servidor para no exponer información en el cliente
+      try {
+        checkSupabaseConfig()
+      } catch (error) {
+        console.error('⚠️ Supabase configuration error:', error)
+      }
+    }
+
+    // Obtener configuración validada
+    const config = getSupabaseConfig()
+    supabaseUrl = config.url
+    supabaseAnonKey = config.anonKey
+    supabaseServiceKey = config.serviceKey
   } catch (error) {
-    console.error('⚠️ Supabase configuration error:', error)
+    console.warn('Using fallback Supabase configuration for build')
   }
 }
 
-// Obtener configuración validada
-const config = getSupabaseConfig()
-
 // Cliente público con validación
-export const supabase = createClient(config.url, config.anonKey, {
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -24,8 +44,8 @@ export const supabase = createClient(config.url, config.anonKey, {
 })
 
 // Cliente administrativo para operaciones que requieren service role
-export const supabaseAdmin = config.serviceKey
-  ? createClient(config.url, config.serviceKey, {
+export const supabaseAdmin = supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,

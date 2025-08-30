@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { AdminLayout } from '@/components/admin/AdminLayout'
+import AdminLayout from '@/components/admin/AdminLayout'
 
 interface AuthStatus {
   success: boolean

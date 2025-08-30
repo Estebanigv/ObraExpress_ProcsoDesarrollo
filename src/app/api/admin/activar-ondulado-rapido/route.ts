@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { isSupabaseConfigured, createSupabaseNotConfiguredResponse } from '@/lib/env-validation';
+
+// Importar supabase de forma condicional
+let supabase: any = null;
+if (isSupabaseConfigured()) {
+  try {
+    const { supabase: sb } = require('@/lib/supabase');
+    supabase = sb;
+  } catch (error) {
+    console.warn('Could not import supabase:', error);
+  }
+}
 
 // Lista de códigos de productos Policarbonato Ondulado con sus colores
 const productosOndulado = [
@@ -39,6 +50,11 @@ const mapaImagenes = {
 };
 
 export async function POST(request: NextRequest) {
+  // Verificar que Supabase esté configurado
+  if (!isSupabaseConfigured() || !supabase) {
+    return createSupabaseNotConfiguredResponse();
+  }
+
   try {
     console.log('🚀 Activando productos específicos Policarbonato Ondulado...');
 

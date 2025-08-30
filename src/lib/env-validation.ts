@@ -118,3 +118,22 @@ export function getSupabaseConfig() {
 
 // Exportar tipo para uso en otros archivos
 export type SupabaseConfig = ReturnType<typeof getSupabaseConfig>
+
+// Función para verificar si Supabase está disponible sin lanzar errores
+export function isSupabaseConfigured(): boolean {
+  try {
+    const config = validateSupabaseConfig()
+    return config.isValid && config.errors.length === 0
+  } catch (error) {
+    return false
+  }
+}
+
+// Respuesta estándar para APIs cuando Supabase no está configurado
+export function createSupabaseNotConfiguredResponse() {
+  return Response.json({
+    success: false,
+    error: 'Supabase configuration not available',
+    message: 'Database connection is not configured in this environment'
+  }, { status: 503 })
+}
