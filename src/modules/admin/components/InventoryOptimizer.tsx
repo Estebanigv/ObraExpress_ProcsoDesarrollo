@@ -105,26 +105,26 @@ export default function InventoryOptimizer({ products, onApplyOptimization, clas
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Optimizador de Inventario</h2>
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Optimizador de Inventario</h2>
+              
+              <RefreshButton 
+                onClick={loadOptimization}
+                isLoading={loading}
+                variant="optimization"
+              />
             </div>
             <p className="text-gray-600 text-sm mt-1">Recomendaciones inteligentes para maximizar ROI</p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 mt-1">
               Optimizaciones aplicadas: {appliedOptimizations.size}
             </div>
-            <RefreshButton 
-              onClick={loadOptimization}
-              isLoading={loading}
-              variant="optimization"
-            />
           </div>
         </div>
 

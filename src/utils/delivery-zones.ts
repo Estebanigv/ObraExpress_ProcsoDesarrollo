@@ -1,13 +1,16 @@
 import { regionesComunas, type Comuna, type Region } from '@/data/regiones-comunas';
 
-// Por ahora solo despachos a Santiago - configuración temporal
+// Configuración de despachos - Solo empresas en Región Metropolitana
 export const DELIVERY_CONFIG = {
-  // Cambiar a true cuando se implemente delivery nacional
+  // Solo despachos empresariales
+  businessOnly: true,
+  // Solo despachos en Región Metropolitana
   nationalDelivery: false,
-  // Por ahora solo Santiago
+  // Solo Santiago
   availableRegions: ['13'], // Código de Región Metropolitana
   mainCity: 'Santiago',
-  mainRegion: 'Región Metropolitana de Santiago'
+  mainRegion: 'Región Metropolitana de Santiago',
+  deliveryType: 'Despacho Empresarial'
 } as const;
 
 // Obtener solo las comunas de Santiago disponibles para despacho
@@ -35,8 +38,11 @@ export function isDeliveryAvailable(codigoComuna: string): boolean {
 
 // Obtener mensaje de disponibilidad de despacho
 export function getDeliveryMessage(): string {
-  if (DELIVERY_CONFIG.nationalDelivery) {
+  if (DELIVERY_CONFIG.nationalDelivery && !DELIVERY_CONFIG.businessOnly) {
     return "Despachamos a todo Chile";
+  }
+  if (DELIVERY_CONFIG.businessOnly) {
+    return `Despacho exclusivo para empresas en ${DELIVERY_CONFIG.mainRegion}`;
   }
   return `Por ahora solo despachamos en ${DELIVERY_CONFIG.mainRegion}`;
 }

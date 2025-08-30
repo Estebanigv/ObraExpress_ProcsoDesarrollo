@@ -1,6 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+// Función para obtener imagen por defecto basada en tipo y color
+function getDefaultImage(tipo: string, color?: string): string {
+  const imageMap: Record<string, Record<string, string>> = {
+    'Ondulado': {
+      'Clear': '/assets/images/Productos/Policarnato Ondulado/policarbonato_ondulado_opal_perspectiva.webp',
+      'Bronce': '/assets/images/Productos/Policarnato Ondulado/policarbonato_ondulado_opal_perspectiva.webp',
+      'Opal': '/assets/images/Productos/Policarnato Ondulado/policarbonato_ondulado_opal_perspectiva.webp',
+      'default': '/assets/images/Productos/Policarnato Ondulado/policarbonato_ondulado_opal_perspectiva.webp'
+    },
+    'Alveolar': {
+      'Clear': '/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar_clear.webp',
+      'Bronce': '/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar_bronce.webp',
+      'default': '/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar.webp'
+    },
+    'Compacto': {
+      'Clear': '/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto Clear.webp',
+      'Solid': '/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto Solid.webp',
+      'default': '/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto.webp'
+    }
+  };
+
+  const tipoKey = Object.keys(imageMap).find(key => 
+    tipo.toLowerCase().includes(key.toLowerCase())
+  );
+
+  if (!tipoKey) {
+    return '/assets/images/Productos/rollo_policarbonato_2mm_cristal.webp';
+  }
+
+  const colorOptions = imageMap[tipoKey];
+  return colorOptions[color || 'default'] || colorOptions['default'];
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Obtener solo productos disponibles en web desde Supabase
@@ -27,7 +60,6 @@ export async function GET(request: NextRequest) {
       .eq('disponible_en_web', true)
       .eq('dimensiones_completas', true)
       .eq('cumple_stock_minimo', true) 
-      .eq('tiene_imagen', true)
       .gte('stock', 10) // Stock mínimo de 10 unidades
       .order('pestaña_origen', { ascending: true })
       .order('orden_original', { ascending: true });
@@ -61,7 +93,7 @@ export async function GET(request: NextRequest) {
                   uso: v.uso,
                   precio_final: v.precio_con_iva, // Solo precio con IVA
                   stock_disponible: v.stock > 10 ? 'Disponible' : 'Stock limitado',
-                  imagen: v.ruta_imagen,
+                  imagen: v.ruta_imagen || getDefaultImage(producto.tipo, v.color),
                   garantia: v.garantia,
                   uv_protection: v.uv_protection
                 }));
@@ -166,7 +198,7 @@ export async function GET(request: NextRequest) {
         stock_disponible: producto.stock > 10 ? 'Disponible' : 'Stock limitado',
         
         // INFORMACIÓN ADICIONAL
-        imagen: producto.ruta_imagen,
+        imagen: producto.ruta_imagen || getDefaultImage(producto.tipo, producto.color),
         garantia: "10 años",
         uv_protection: true,
         

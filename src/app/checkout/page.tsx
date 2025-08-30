@@ -358,17 +358,32 @@ function CheckoutPageContent() {
 
 
   const validateForm = (): boolean => {
-    const required = ['nombre', 'telefono', 'email', 'region', 'comuna', 'direccion'];
+    const required = ['nombre', 'telefono', 'email', 'empresa', 'region', 'comuna', 'direccion'];
     
     for (const field of required) {
       if (!formData[field as keyof CheckoutFormData].trim()) {
-        setError(`El campo ${field} es obligatorio`);
+        const fieldNames: { [key: string]: string } = {
+          'nombre': 'Nombre',
+          'telefono': 'Teléfono',
+          'email': 'Email',
+          'empresa': 'Empresa',
+          'region': 'Región',
+          'comuna': 'Comuna',
+          'direccion': 'Dirección'
+        };
+        setError(`El campo ${fieldNames[field] || field} es obligatorio`);
         return false;
       }
     }
 
     if (!formData.email.includes('@')) {
       setError('Email inválido');
+      return false;
+    }
+
+    // Validar que sea Región Metropolitana (código 13)
+    if (formData.region !== '13') {
+      setError('Solo realizamos despachos empresariales en la Región Metropolitana de Santiago');
       return false;
     }
 
@@ -598,6 +613,23 @@ function CheckoutPageContent() {
             {/* COLUMNA IZQUIERDA: Datos de Entrega + Ubicación */}
             <div className="space-y-6">
               
+              {/* Banner Informativo Despacho Empresarial */}
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      <strong>Importante:</strong> Solo realizamos despachos empresariales en la Región Metropolitana de Santiago.
+                      Es obligatorio proporcionar la razón social de la empresa.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
               {/* Formulario de Datos de Entrega */}
               <div className="bg-white rounded-2xl shadow-lg p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
@@ -739,11 +771,12 @@ function CheckoutPageContent() {
                     </div>
                   </div>
 
-                  {/* Datos de Empresa (Opcionales) */}
+                  {/* Datos de Empresa (Obligatorios) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Empresa (Opcional)
+                        Empresa <span className="text-red-500">*</span>
+                        <span className="text-xs text-gray-500 ml-1">(Solo despachos empresariales)</span>
                       </label>
                       <div className="relative">
                         <input
@@ -751,10 +784,11 @@ function CheckoutPageContent() {
                           name="empresa"
                           value={formData.empresa}
                           onChange={handleInputChange}
+                          required
                           className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                             formData.empresa ? 'border-green-300 bg-green-50 pr-10' : 'border-gray-300'
                           }`}
-                          placeholder="Nombre de la empresa"
+                          placeholder="Razón social de la empresa"
                         />
                         {formData.empresa && (
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">

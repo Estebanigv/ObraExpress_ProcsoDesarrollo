@@ -48,6 +48,16 @@ export default function AdminHeader({
       )
     },
     { 
+      id: 'ordenes', 
+      name: 'Órdenes', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4l1-12z" />
+        </svg>
+      ),
+      badge: true // Indicador de nueva funcionalidad
+    },
+    { 
       id: 'clientes', 
       name: 'Clientes', 
       icon: (
@@ -199,12 +209,12 @@ export default function AdminHeader({
             {/* Botón Volver al Sitio */}
             <Link
               href="/"
-              className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-lg transition-all"
+              className="p-2 text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-lg transition-all"
+              title="Volver al Sitio"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-              <span className="hidden sm:block">Volver al Sitio</span>
             </Link>
 
             {/* Menú de Usuario */}
