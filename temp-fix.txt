@@ -1,0 +1,11 @@
+FIXED:                 </div>
+FIXED: 
+FIXED:               </div>
+FIXED:             </div>
+FIXED:           )}
+FIXED: 
+FIXED: 
+FIXED: 
+FIXED:           {/* Input */}
+FIXED:           {!showAuthForm && (
+FIXED:             <div className="p-5 border-t border-gray-100 bg-white rounded-b-2xl">

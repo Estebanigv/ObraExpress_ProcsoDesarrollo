@@ -1,0 +1,810 @@
+/* Optimizaciones específicas para laptops de 13 pulgadas */
+
+/* Optimizaciones para resoluciones 1280x800 y 1366x768 */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  /* Reducir padding en secciones principales */
+  .hero-section {
+    padding-top: 2.75rem !important;
+    padding-bottom: 1.25rem !important;
+  }
+  
+  /* Optimizar espaciado en grid de productos */
+  .products-grid {
+    gap: 1.75rem !important;
+  }
+  
+  /* Reducir padding en tarjetas de productos */
+  .product-card {
+    padding: 1.25rem !important;
+  }
+  
+  /* Optimizar tamaño de texto en hero */
+  .hero-title {
+    font-size: 2.25rem !important;
+    line-height: 2.5rem !important;
+  }
+  
+  /* Reducir espaciado en formularios */
+  .form-container {
+    padding: 1rem !important;
+  }
+  
+  /* Optimizar modales para pantallas medianas */
+  .modal-container {
+    max-width: 90vw !important;
+    max-height: 85vh !important;
+  }
+  
+  /* Ajustar footer para mejor distribución */
+  .footer-grid {
+    gap: 1.5rem !important;
+  }
+  
+  /* Optimizar navegación */
+  .navbar-container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+/* Optimizaciones para laptops pequeños (13" - 14") */
+@media (min-width: 1366px) and (max-width: 1535px) {
+  /* Ajustes más sutiles para laptops de 14" */
+  .hero-section {
+    padding-top: 3rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+  
+  .products-grid {
+    gap: 2rem !important;
+  }
+  
+  .product-card {
+    padding: 1.5rem !important;
+  }
+}
+
+/* Optimizaciones específicas de altura para laptops de 13" */
+@media (max-height: 800px) {
+  /* Reducir altura mínima del hero */
+  .min-h-screen {
+    min-height: 90vh !important;
+  }
+  
+  /* Reducir padding vertical en secciones */
+  .section-padding {
+    padding-top: 3rem !important;
+    padding-bottom: 3rem !important;
+  }
+  
+  /* Optimizar modales para pantallas de baja altura */
+  .modal-full-height {
+    max-height: 75vh !important;
+    overflow-y: auto;
+  }
+}
+
+/* Optimizaciones para mejor uso del espacio horizontal */
+@media (min-width: 1280px) and (max-width: 1366px) {
+  /* Usar mejor el ancho disponible */
+  .container {
+    max-width: 95% !important;
+  }
+  
+  /* Reducir márgenes laterales */
+  .section-margins {
+    margin-left: 1rem !important;
+    margin-right: 1rem !important;
+  }
+  
+  /* Optimizar grid para 2 columnas en lugar de 3 cuando sea necesario */
+  .responsive-grid-2-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Optimizaciones para texto y legibilidad */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  /* Reducir ligeramente tamaños de fuente para mejor ajuste */
+  .text-responsive-lg {
+    font-size: 1rem !important;
+    line-height: 1.5rem !important;
+  }
+  
+  .text-responsive-xl {
+    font-size: 1.125rem !important;
+    line-height: 1.75rem !important;
+  }
+  
+  .text-responsive-2xl {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+}
+
+/* Optimizaciones para botones y elementos interactivos */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  /* Reducir padding en botones para ahorrar espacio */
+  .btn-responsive {
+    padding: 0.625rem 1rem !important;
+    font-size: 0.875rem !important;
+  }
+  
+  /* Optimizar espaciado entre botones */
+  .btn-group-responsive {
+    gap: 0.75rem !important;
+  }
+}
+
+/* Utilidades para debugging responsive (solo desarrollo) */
+@media (min-width: 1280px) and (max-width: 1366px) {
+  .debug-laptop-13::before {
+    content: "Laptop 13\" Mode Active";
+    position: fixed;
+    top: 0;
+    right: 0;
+    background: #ef4444;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    z-index: 9999;
+    display: none; /* Cambiar a 'block' para debugging */
+  }
+}
+
+/* Clases de utilidad para aplicar en componentes */
+.laptop-13-optimized {
+  @media (min-width: 1280px) and (max-width: 1439px) {
+    padding: 1.25rem !important;
+    margin: 0.75rem !important;
+    gap: 1rem !important;
+  }
+}
+
+.laptop-13-text-compact {
+  @media (min-width: 1280px) and (max-width: 1439px) {
+    font-size: 0.9em !important;
+    line-height: 1.4 !important;
+  }
+}
+
+.laptop-13-spacing-compact {
+  @media (min-width: 1280px) and (max-width: 1439px) {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+}
+
+/* ========================================
+   OPTIMIZACIONES MÓVILES Y TABLETS
+========================================= */
+
+/* ========================================
+   NUEVAS OPTIMIZACIONES SEO Y RESPONSIVE
+========================================= */
+
+/* Móviles extra pequeños (320px - 374px) */
+@media (max-width: 374px) {
+  /* Optimizaciones extremas para dispositivos muy pequeños */
+  .container {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  
+  .hero-title-xs {
+    font-size: 1.5rem !important;
+    line-height: 1.75rem !important;
+  }
+  
+  .btn-xs {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.75rem !important;
+  }
+  
+  /* Grid single column para dispositivos muy pequeños */
+  .grid-responsive-xs {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+}
+
+/* Móviles pequeños (320px - 479px) */
+@media (max-width: 479px) {
+  /* Navegación móvil optimizada */
+  .navbar-mobile {
+    padding: 0.5rem 1rem !important;
+  }
+  
+  .navbar-mobile .logo {
+    height: 2rem !important;
+  }
+  
+  .hamburger-menu {
+    padding: 0.75rem !important;
+  }
+  
+  /* Hero section móvil */
+  .hero-mobile {
+    padding-top: 6rem !important;
+    padding-bottom: 2rem !important;
+    text-align: center;
+  }
+  
+  .hero-title-mobile {
+    font-size: 1.75rem !important;
+    line-height: 2rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .hero-subtitle-mobile {
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  /* Productos grid móvil */
+  .products-grid-mobile {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  
+  .product-card-mobile {
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .product-card-mobile .product-image {
+    height: 12rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  /* Botones móvil */
+  .btn-mobile {
+    width: 100% !important;
+    padding: 0.875rem 1rem !important;
+    font-size: 0.875rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  .btn-group-mobile {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Formularios móvil */
+  .form-mobile input,
+  .form-mobile select,
+  .form-mobile textarea {
+    padding: 0.875rem !important;
+    font-size: 1rem !important; /* Evita zoom en iOS */
+    border-radius: 0.5rem !important;
+  }
+  
+  .form-mobile .form-group {
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Modales móvil */
+  .modal-mobile {
+    margin: 1rem !important;
+    max-width: calc(100vw - 2rem) !important;
+    max-height: calc(100vh - 2rem) !important;
+  }
+  
+  /* Carrito flotante móvil */
+  .floating-cart-mobile {
+    position: fixed !important;
+    bottom: 1rem !important;
+    right: 1rem !important;
+    width: 3.5rem !important;
+    height: 3.5rem !important;
+  }
+}
+
+/* Móviles medianos (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  /* Hero mejorado para móviles medianos */
+  .hero-mobile-md {
+    padding-top: 7rem !important;
+    padding-bottom: 2.5rem !important;
+  }
+  
+  .hero-title-mobile-md {
+    font-size: 2rem !important;
+    line-height: 2.25rem !important;
+  }
+  
+  /* Grid de productos 2 columnas en móviles medianos */
+  .products-grid-mobile-md {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.25rem !important;
+  }
+  
+  .product-card-mobile-md {
+    padding: 1.25rem !important;
+  }
+  
+  /* Botones en línea para pantallas más anchas */
+  .btn-group-mobile-md {
+    flex-direction: row !important;
+    gap: 0.75rem !important;
+  }
+  
+  .btn-mobile-md {
+    width: auto !important;
+    flex: 1 !important;
+  }
+}
+
+/* Tablets verticales (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Navegación tablet */
+  .navbar-tablet {
+    padding: 1rem 1.5rem !important;
+  }
+  
+  .navbar-tablet .container {
+    max-width: 100% !important;
+  }
+  
+  /* Hero tablet */
+  .hero-tablet {
+    padding-top: 8rem !important;
+    padding-bottom: 3rem !important;
+  }
+  
+  .hero-title-tablet {
+    font-size: 2.5rem !important;
+    line-height: 2.75rem !important;
+  }
+  
+  .hero-subtitle-tablet {
+    font-size: 1rem !important;
+    line-height: 1.5rem !important;
+  }
+  
+  /* Grid 2 columnas para tablets */
+  .products-grid-tablet {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+  
+  .product-card-tablet {
+    padding: 1.5rem !important;
+  }
+  
+  .product-card-tablet .product-image {
+    height: 14rem !important;
+  }
+  
+  /* Formularios tablet */
+  .form-tablet {
+    max-width: 80% !important;
+    margin: 0 auto !important;
+  }
+  
+  .form-tablet .form-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem !important;
+  }
+  
+  /* Modales tablet */
+  .modal-tablet {
+    max-width: 90vw !important;
+    max-height: 90vh !important;
+  }
+  
+  /* Carrito lateral tablet */
+  .cart-sidebar-tablet {
+    width: 400px !important;
+  }
+}
+
+/* Tablets horizontales (1024px - 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  /* Grid 3 columnas para tablets horizontales */
+  .products-grid-tablet-lg {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1.75rem !important;
+  }
+  
+  .hero-tablet-lg {
+    padding-top: 9rem !important;
+    padding-bottom: 3.5rem !important;
+  }
+  
+  .hero-title-tablet-lg {
+    font-size: 3rem !important;
+    line-height: 3.25rem !important;
+  }
+  
+  /* Formularios en línea para tablets grandes */
+  .form-tablet-lg .form-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  
+  /* Carrito lateral más ancho */
+  .cart-sidebar-tablet-lg {
+    width: 450px !important;
+  }
+}
+
+/* Optimizaciones de toque para dispositivos táctiles */
+@media (pointer: coarse) {
+  /* Áreas de toque más grandes */
+  .touch-target {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 0.75rem !important;
+  }
+  
+  /* Botones con mejor área de toque */
+  .btn-touch {
+    padding: 0.875rem 1.25rem !important;
+    margin: 0.25rem !important;
+  }
+  
+  /* Enlaces con área de toque ampliada */
+  .link-touch {
+    padding: 0.5rem !important;
+    margin: 0.25rem 0 !important;
+  }
+  
+  /* Inputs más altos para facilitar la interacción */
+  .input-touch {
+    min-height: 48px !important;
+    padding: 0.875rem 1rem !important;
+    font-size: 1rem !important;
+  }
+  
+  /* Selectores con área de toque mejorada */
+  .select-touch {
+    min-height: 48px !important;
+    padding: 0.875rem 1rem !important;
+  }
+}
+
+/* Optimizaciones para dispositivos con hover limitado */
+@media (hover: none) {
+  /* Eliminar estados hover que no funcionan en táctil */
+  .no-hover:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Estados de foco mejorados para navegación por teclado */
+  .focus-visible:focus {
+    outline: 2px solid #3B82F6 !important;
+    outline-offset: 2px !important;
+  }
+}
+
+/* Optimizaciones para modo oscuro en dispositivos móviles */
+@media (prefers-color-scheme: dark) and (max-width: 767px) {
+  .dark-mobile {
+    background-color: #1F2937 !important;
+    color: #F9FAFB !important;
+  }
+  
+  .dark-mobile .card {
+    background-color: #374151 !important;
+    border-color: #4B5563 !important;
+  }
+  
+  .dark-mobile .btn-primary {
+    background-color: #3B82F6 !important;
+    color: #FFFFFF !important;
+  }
+}
+
+/* Optimizaciones de performance para móviles */
+@media (max-width: 767px) {
+  /* Reducir animaciones en móviles para mejor performance */
+  .performance-mobile * {
+    animation-duration: 0.2s !important;
+    transition-duration: 0.2s !important;
+  }
+  
+  /* Simplificar sombras para mejor rendimiento */
+  .shadow-mobile {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Imágenes optimizadas para móvil */
+  .img-mobile {
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: cover !important;
+  }
+}
+
+/* Utilidades específicas para desarrollo mobile */
+.mobile-debug {
+  @media (max-width: 767px) {
+    border: 2px solid red !important;
+    position: relative !important;
+  }
+  
+  @media (max-width: 767px) {
+    .mobile-debug::before {
+      content: "MOBILE";
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: red;
+      color: white;
+      padding: 2px 4px;
+      font-size: 10px;
+      z-index: 9999;
+    }
+  }
+}
+
+.tablet-debug {
+  @media (min-width: 768px) and (max-width: 1023px) {
+    border: 2px solid blue !important;
+    position: relative !important;
+  }
+  
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .tablet-debug::before {
+      content: "TABLET";
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: blue;
+      color: white;
+      padding: 2px 4px;
+      font-size: 10px;
+      z-index: 9999;
+    }
+  }
+}
+
+/* ========================================
+   DISPOSITIVOS PLEGABLES Y ESPECIALES
+========================================= */
+
+/* Samsung Galaxy Fold y dispositivos similares (280px cuando plegado) */
+@media (max-width: 280px) {
+  .fold-optimized {
+    font-size: 0.75rem !important;
+    padding: 0.25rem !important;
+  }
+  
+  .hero-fold {
+    padding: 1rem 0.5rem !important;
+  }
+  
+  .btn-fold {
+    width: 100% !important;
+    margin-bottom: 0.5rem !important;
+    font-size: 0.6875rem !important;
+  }
+}
+
+/* Dispositivos plegables desplegados horizontalmente (Galaxy Fold: 512px x 2152px) */
+@media (min-width: 512px) and (max-width: 768px) and (min-height: 1800px) {
+  .foldable-unfolded {
+    max-width: 480px !important;
+    margin: 0 auto !important;
+  }
+  
+  .hero-foldable {
+    padding-top: 4rem !important;
+    text-align: center !important;
+  }
+}
+
+/* ========================================
+   OPTIMIZACIONES PARA APPLE DEVICES
+========================================= */
+
+/* iPhone SE (375x667) */
+@media (max-width: 375px) and (max-height: 667px) {
+  .iphone-se-optimized {
+    font-size: 0.875rem !important;
+  }
+  
+  .hero-iphone-se {
+    min-height: 70vh !important;
+    padding: 2rem 1rem !important;
+  }
+}
+
+/* iPhone 12/13/14 (390x844) */
+@media (min-width: 390px) and (max-width: 428px) and (min-height: 800px) {
+  .iphone-modern {
+    padding: 0 1.25rem !important;
+  }
+  
+  .safe-area-inset {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    padding-top: env(safe-area-inset-top) !important;
+  }
+}
+
+/* iPhone 14 Pro Max (430x932) */
+@media (min-width: 430px) and (max-width: 480px) and (min-height: 900px) {
+  .iphone-pro-max {
+    max-width: 420px !important;
+  }
+  
+  .dynamic-island-spacing {
+    padding-top: 3rem !important; /* Espacio para Dynamic Island */
+  }
+}
+
+/* iPad Mini (768x1024) en vertical */
+@media (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
+  .ipad-mini-portrait {
+    padding: 2rem 3rem !important;
+  }
+  
+  .grid-ipad-mini {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 2rem !important;
+  }
+}
+
+/* iPad Air/Pro (820x1180 - 1024x1366) */
+@media (min-width: 820px) and (max-width: 1024px) and (orientation: portrait) {
+  .ipad-pro-portrait {
+    max-width: 90% !important;
+    margin: 0 auto !important;
+  }
+  
+  .grid-ipad-pro {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* ========================================
+   OPTIMIZACIONES PARA ANDROID DEVICES
+========================================= */
+
+/* Android pequeños (360px - 414px) */
+@media (min-width: 360px) and (max-width: 414px) {
+  .android-small {
+    font-size: 0.9rem !important;
+  }
+  
+  .navbar-android {
+    height: 3.5rem !important;
+    padding: 0.5rem 1rem !important;
+  }
+  
+  /* Optimización para teclados virtuales */
+  .keyboard-spacer {
+    margin-bottom: 5rem !important;
+  }
+}
+
+/* ========================================
+   LANDSCAPE ORIENTATIONS
+========================================= */
+
+/* Móviles en landscape */
+@media (max-height: 480px) and (orientation: landscape) {
+  .mobile-landscape {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+  
+  .hero-mobile-landscape {
+    min-height: 85vh !important;
+    flex-direction: row !important;
+    text-align: left !important;
+  }
+  
+  .navbar-mobile-landscape {
+    height: 3rem !important;
+  }
+  
+  /* Ocultar elementos no esenciales en landscape móvil */
+  .hide-mobile-landscape {
+    display: none !important;
+  }
+}
+
+/* Tablets en landscape */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  .tablet-landscape {
+    padding: 2rem 4rem !important;
+  }
+  
+  .grid-tablet-landscape {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY OPTIMIZATIONS
+========================================= */
+
+@media (prefers-color-scheme: dark) {
+  .dark-mode-responsive {
+    background-color: #111827 !important;
+    color: #f9fafb !important;
+  }
+  
+  .card-dark {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+  }
+  
+  .text-dark-primary {
+    color: #f9fafb !important;
+  }
+  
+  .text-dark-secondary {
+    color: #d1d5db !important;
+  }
+  
+  .border-dark {
+    border-color: #374151 !important;
+  }
+  
+  /* Imágenes en dark mode */
+  .img-dark-mode {
+    filter: brightness(0.9) !important;
+  }
+}
+
+/* HIGH CONTRAST MODE */
+@media (prefers-contrast: high) {
+  .high-contrast {
+    border: 2px solid currentColor !important;
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  .btn-high-contrast {
+    background-color: black !important;
+    color: white !important;
+    border: 2px solid black !important;
+  }
+  
+  .text-high-contrast {
+    color: black !important;
+    font-weight: bold !important;
+  }
+}
+
+/* REDUCED MOTION */
+@media (prefers-reduced-motion: reduce) {
+  .respect-motion-preference * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .no-animation {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* PRINT OPTIMIZATIONS */
+@media print {
+  .print-optimized {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-page-break {
+    page-break-before: always !important;
+  }
+  
+  .print-links:after {
+    content: " (" attr(href) ")" !important;
+  }
+}

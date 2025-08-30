@@ -1,0 +1,32 @@
+# Files and directories to ignore during Vercel deployment
+
+# Development files
+*.md
+.env.local.example
+OAUTH_SETUP.md
+
+# Debug files
+node_modules
+.git
+.next
+.vercel
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Backup files
+*-backup.tsx
+coordinador-despacho-backup.tsx

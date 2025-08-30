@@ -1,0 +1,201 @@
+/* Responsive Navbar Styles - Optimizado para móviles */
+
+/* Base Mobile Styles */
+@media (max-width: 768px) {
+  /* Ocultar menú lateral en móvil */
+  .mobile-drawer,
+  .mobile-sidebar {
+    display: none !important;
+  }
+  
+  /* Navbar fijo y optimizado */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  /* Menú móvil dropdown simplificado */
+  .mobile-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    max-height: calc(100vh - 60px);
+    overflow-y: auto;
+  }
+  
+  /* Touch targets más grandes para móvil */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Botones más accesibles */
+  button, a {
+    padding: 12px 16px;
+    font-size: 16px;
+  }
+  
+  /* Simplificar elementos del navbar */
+  .navbar-brand {
+    font-size: 18px;
+  }
+  
+  .navbar-icons {
+    gap: 8px;
+  }
+  
+  /* Ocultar elementos no esenciales */
+  .desktop-only {
+    display: none !important;
+  }
+  
+  /* Mostrar elementos móviles */
+  .mobile-only {
+    display: flex !important;
+  }
+}
+
+/* Tablet Styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Navbar adaptativo para tablets */
+  nav {
+    padding: 8px 16px;
+  }
+  
+  .navbar-menu {
+    gap: 16px;
+  }
+  
+  /* Ajustar tamaño de fuentes */
+  .navbar-link {
+    font-size: 14px;
+  }
+}
+
+/* Admin Responsive Styles */
+@media (max-width: 768px) {
+  /* Admin Dashboard Móvil */
+  .admin-sidebar {
+    display: none !important;
+  }
+  
+  .admin-content {
+    margin-left: 0 !important;
+    padding: 16px !important;
+  }
+  
+  /* Admin Mobile Menu */
+  .admin-mobile-menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    z-index: 9999;
+  }
+  
+  .admin-mobile-menu-item {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    font-size: 12px;
+  }
+  
+  /* Tablas responsivas */
+  .admin-table {
+    font-size: 12px;
+  }
+  
+  .admin-table th,
+  .admin-table td {
+    padding: 8px 4px;
+  }
+  
+  /* Cards apiladas en móvil */
+  .admin-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  
+  /* Formularios adaptados */
+  .admin-form {
+    padding: 16px;
+  }
+  
+  .admin-form-group {
+    margin-bottom: 16px;
+  }
+  
+  .admin-form input,
+  .admin-form select,
+  .admin-form textarea {
+    width: 100%;
+    font-size: 16px;
+    padding: 10px;
+  }
+}
+
+/* Optimizaciones de rendimiento */
+@media (max-width: 768px) {
+  /* Reducir animaciones en móvil */
+  * {
+    animation-duration: 0.2s !important;
+    transition-duration: 0.2s !important;
+  }
+  
+  /* Desactivar efectos pesados */
+  .parallax,
+  .backdrop-blur {
+    transform: none !important;
+    backdrop-filter: none !important;
+  }
+  
+  /* Simplificar sombras */
+  .shadow-lg {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  }
+}
+
+/* Mejoras de accesibilidad móvil */
+@media (max-width: 768px) {
+  /* Focus visible mejorado */
+  *:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 2px;
+  }
+  
+  /* Contraste mejorado */
+  .text-gray-500 {
+    color: #4b5563;
+  }
+  
+  /* Espaciado táctil */
+  .clickable {
+    margin: 4px;
+    padding: 12px;
+  }
+}
+
+/* Ocultar completamente elementos innecesarios */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    left: -9999px !important;
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "name": "ObraExpress Chile - Materiales para Construcción",
+  "short_name": "ObraExpress",
+  "description": "Especialistas en policarbonatos y materiales para construcción en Chile",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "categories": ["business", "shopping", "utilities"],
+  "lang": "es-CL",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 24x24 32x32 48x48 64x64",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/android-chrome-512x512.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180", 
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/assets/images/screenshots/desktop.webp",
+      "sizes": "1280x720",
+      "type": "image/webp",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/assets/images/screenshots/mobile.webp", 
+      "sizes": "390x844",
+      "type": "image/webp",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ver Productos",
+      "short_name": "Productos",
+      "description": "Explora nuestro catálogo de productos",
+      "url": "/productos",
+      "icons": [{"src": "/favicon-96x96.png", "sizes": "96x96"}]
+    },
+    {
+      "name": "Contactar",
+      "short_name": "Contacto", 
+      "description": "Ponte en contacto con nosotros",
+      "url": "/contacto",
+      "icons": [{"src": "/favicon-96x96.png", "sizes": "96x96"}]
+    },
+    {
+      "name": "WhatsApp",
+      "short_name": "WhatsApp",
+      "description": "Chatea con nosotros por WhatsApp",
+      "url": "https://wa.me/56963348909",
+      "icons": [{"src": "/favicon-96x96.png", "sizes": "96x96"}]
+    }
+  ],
+  "scope": "/",
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}
