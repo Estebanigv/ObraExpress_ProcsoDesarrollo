@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import fs from 'fs';
+import path from 'path';
 
 // Función para obtener imagen por defecto basada en tipo y color
 function getDefaultImage(tipo: string, color?: string): string {
@@ -39,43 +41,63 @@ export async function GET(request: NextRequest) {
     // Filtrar solo los 4 productos específicos permitidos
     const productosPermitidos = ['Alveolar', 'Ondulado', 'Compacto', 'Perfiles'];
     
-    // Obtener solo productos disponibles en web desde Supabase
-    const { data: productos, error } = await supabase
-      .from('productos')
-      .select(`
-        id,
-        codigo,
-        nombre,
-        categoria,
-        tipo,
-        espesor,
-        ancho,
-        largo,
-        color,
-        uso,
-        precio_con_iva,
-        stock,
-        ruta_imagen,
-        pestaña_origen,
-        orden_original,
-        created_at
-      `)
-      .eq('disponible_en_web', true)
-      .eq('dimensiones_completas', true)
-      .eq('cumple_stock_minimo', true) 
-      .gte('stock', 10) // Stock mínimo de 10 unidades
-      .in('tipo', productosPermitidos) // Solo permitir los 4 tipos específicos
-      .order('pestaña_origen', { ascending: true })
-      .order('orden_original', { ascending: true });
+    let productos = null;
+    let error = null;
+    
+    // Solo intentar Supabase si está configurado
+    if (supabase && typeof window === 'undefined') {
+      try {
+        console.log('📊 Intentando obtener productos desde Supabase...');
+        const result = await supabase
+          .from('productos')
+          .select(`
+            id,
+            codigo,
+            nombre,
+            categoria,
+            tipo,
+            espesor,
+            ancho,
+            largo,
+            color,
+            uso,
+            precio_con_iva,
+            stock,
+            ruta_imagen,
+            pestaña_origen,
+            orden_original,
+            created_at
+          `)
+          .eq('disponible_en_web', true)
+          .eq('dimensiones_completas', true)
+          .eq('cumple_stock_minimo', true) 
+          .gte('stock', 10) // Stock mínimo de 10 unidades
+          .in('tipo', productosPermitidos) // Solo permitir los 4 tipos específicos
+          .order('pestaña_origen', { ascending: true })
+          .order('orden_original', { ascending: true });
+          
+        productos = result.data;
+        error = result.error;
+      } catch (supabaseError) {
+        console.warn('⚠️ Error con Supabase, usando fallback JSON:', supabaseError);
+        error = supabaseError;
+      }
+    } else {
+      console.log('⚠️ Supabase no disponible, usando fallback directo a JSON');
+      error = new Error('Supabase not configured');
+    }
 
-    if (error) {
-      console.error('Error obteniendo productos públicos:', error);
+    if (error || !productos || productos.length === 0) {
+      console.error('Error obteniendo productos públicos desde Supabase, usando JSON fallback:', error?.message);
       
       // Fallback a JSON si Supabase falla
       try {
-        const fallbackResponse = await fetch('/data/productos-policarbonato.json');
-        if (fallbackResponse.ok) {
-          const fallbackData = await fallbackResponse.json();
+        // Usar filesystem directamente en el servidor
+        const filePath = path.join(process.cwd(), 'src', 'data', 'productos-policarbonato.json');
+        
+        if (fs.existsSync(filePath)) {
+          const fileContent = fs.readFileSync(filePath, 'utf8');
+          const fallbackData = JSON.parse(fileContent);
           console.log('📄 Usando fallback JSON para productos públicos');
           
           // Filtrar y limpiar datos del JSON para cliente - Solo 4 productos específicos
@@ -126,9 +148,11 @@ export async function GET(request: NextRequest) {
             fuente: 'json_fallback',
             total: Object.values(productosPublicos).flat().reduce((sum, p: any) => sum + p.variantes.length, 0)
           });
+        } else {
+          console.warn('📄 Archivo JSON de productos no encontrado');
         }
       } catch (fallbackError) {
-        console.error('Error en fallback:', fallbackError);
+        console.error('Error en fallback JSON:', fallbackError);
       }
       
       return NextResponse.json(

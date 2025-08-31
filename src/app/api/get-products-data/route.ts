@@ -16,8 +16,8 @@ export async function GET() {
     // Solo usar caché para la web pública
     const forceRefresh = true; // Por ahora siempre refrescar
 
-    // PRIORIDAD 1: Intentar leer desde Supabase
-    if (supabaseAdmin) {
+    // PRIORIDAD 1: Intentar leer desde Supabase (solo si está configurado)
+    if (supabaseAdmin && typeof window === 'undefined') {
       try {
         console.log('📊 Leyendo datos desde Supabase...');
         const { data: supabaseData, error } = await supabaseAdmin
@@ -110,6 +110,8 @@ export async function GET() {
       } catch (supabaseError) {
         console.error('❌ Error leyendo desde Supabase:', supabaseError);
       }
+    } else {
+      console.log('⚠️ Supabase no está disponible, usando fallback directo a JSON');
     }
 
     // FALLBACK: Leer desde JSON como antes
