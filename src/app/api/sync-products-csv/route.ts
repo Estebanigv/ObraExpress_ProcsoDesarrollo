@@ -152,6 +152,7 @@ function obtenerNombreCategoria(sheetName: string): string {
     'Perfil': 'Perfiles',
     'Profile': 'Perfiles', 
     'Profiles': 'Perfiles',
+    'Perfiles Alveolar': 'Perfiles',
     'Kits': 'Kits',
     'Kit': 'Kits',
     'Herramientas': 'Herramientas',
@@ -209,7 +210,7 @@ async function detectarPestañasPorFuerzaBruta() {
     'Productos', 'Products',
     'Inventario', 'Inventory',
     'Materiales', 'Materials',
-    'Perfiles', 'Perfil', 'Profile', 'Profiles'
+    'Perfiles', 'Perfil', 'Profile', 'Profiles', 'Perfiles Alveolar'
   ];
   
   const pestañasExistentes = [];
@@ -606,7 +607,7 @@ export async function POST(request: NextRequest) {
     const pestañasPermitidas = [
       'Sheet1', 'Hoja1', 
       'Policarbonato', 'Policarbonatos', 
-      'Perfiles', 'Perfil', 'Profile', 'Profiles',
+      'Perfiles', 'Perfil', 'Profile', 'Profiles', 'Perfiles Alveolar',
       'Accesorios', 'Accesorio', 'Accessories', 'Accessory'
     ];
     const pestañasAProcessar = pestañasDetectadas.filter(pestaña => 
