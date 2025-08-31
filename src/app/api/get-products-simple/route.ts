@@ -140,15 +140,6 @@ export async function GET() {
           error: 'No hay productos en la base de datos. Ejecuta una sincronización primero.'
         });
       }
-    } else {
-      console.error('❌ supabaseAdmin no está configurado');
-      return NextResponse.json({
-        success: false,
-        productos_por_categoria: {},
-        total: 0,
-        error: 'Configuración de base de datos no disponible'
-      });
-    }
 
   } catch (error) {
     console.error('💥 Error general en get-products-simple:', error);
