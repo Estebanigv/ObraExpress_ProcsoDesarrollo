@@ -33,41 +33,19 @@
       "type": "image/png"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/assets/images/screenshots/desktop.webp",
-      "sizes": "1280x720",
-      "type": "image/webp",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/assets/images/screenshots/mobile.webp", 
-      "sizes": "390x844",
-      "type": "image/webp",
-      "form_factor": "narrow"
-    }
-  ],
+  "screenshots": [],
   "shortcuts": [
     {
       "name": "Ver Productos",
       "short_name": "Productos",
       "description": "Explora nuestro catálogo de productos",
-      "url": "/productos",
-      "icons": [{"src": "/favicon-96x96.png", "sizes": "96x96"}]
+      "url": "/productos"
     },
     {
       "name": "Contactar",
       "short_name": "Contacto", 
       "description": "Ponte en contacto con nosotros",
-      "url": "/contacto",
-      "icons": [{"src": "/favicon-96x96.png", "sizes": "96x96"}]
-    },
-    {
-      "name": "WhatsApp",
-      "short_name": "WhatsApp",
-      "description": "Chatea con nosotros por WhatsApp",
-      "url": "https://wa.me/56963348909",
-      "icons": [{"src": "/favicon-96x96.png", "sizes": "96x96"}]
+      "url": "/contacto"
     }
   ],
   "scope": "/",

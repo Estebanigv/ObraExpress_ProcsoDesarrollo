@@ -124,7 +124,7 @@ const nextConfig: NextConfig = {
             },
             {
               key: 'Content-Security-Policy',
-              value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; connect-src 'self' https:; frame-src 'self' https:; object-src 'none';",
+              value: "default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:; style-src 'self' 'unsafe-inline' https: data:; img-src 'self' data: https: blob:; connect-src 'self' https: data:; font-src 'self' https: data:; media-src 'self' https: data:; frame-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self';",
             },
           ],
         },
