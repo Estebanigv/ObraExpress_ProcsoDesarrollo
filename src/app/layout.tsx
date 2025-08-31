@@ -203,10 +203,14 @@ export default function RootLayout({
               
               // Limpiar periódicamente elementos de ElevenLabs
               const cleanupElevenLabs = () => {
-                const elements = document.querySelectorAll('elevenlabs-convai, [class*="elevenlabs"], [id*="elevenlabs"]:not(#elevenlabs-widget-container)');
-                elements.forEach(el => el.remove());
+                const elements = document.querySelectorAll('elevenlabs-convai, [class*="elevenlabs"], [id*="elevenlabs"], [class*="convai"], [id*="convai"], .elevenlabs-widget, .convai-widget, #elevenlabs-widget-container');
+                elements.forEach(el => {
+                  console.log('🚫 Eliminando elemento ElevenLabs/Convai:', el.tagName, el.className);
+                  el.remove();
+                });
               };
-              setInterval(cleanupElevenLabs, 1000);
+              cleanupElevenLabs(); // Limpiar inmediatamente
+              setInterval(cleanupElevenLabs, 500); // Limpiar cada 500ms
             }
           `
         }} />

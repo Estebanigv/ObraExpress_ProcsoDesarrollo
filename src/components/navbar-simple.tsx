@@ -88,18 +88,19 @@ function Navbar({ className }: { className?: string }) {
   // Búsqueda en tiempo real
   useEffect(() => {
     if (searchQuery.length >= 3) {
-      // Simular productos para búsqueda (en producción esto vendría de una API)
+      // Simular productos para búsqueda - Solo los 4 productos permitidos
       const mockProducts = [
         'Policarbonato Alveolar 4mm',
-        'Policarbonato Alveolar 6mm', 
-        'Policarbonato Ondulado Cristal',
+        'Policarbonato Alveolar 6mm',
+        'Policarbonato Alveolar 8mm', 
+        'Policarbonato Ondulado Clear',
+        'Policarbonato Ondulado Bronce',
+        'Policarbonato Ondulado Opal',
+        'Policarbonato Compacto 2mm',
         'Policarbonato Compacto 3mm',
+        'Policarbonato Compacto 4mm',
         'Perfiles de Aluminio',
-        'Selladores de Silicona',
-        'Pinturas para Metal',
-        'Barnices de Madera',
-        'Rollos de Vinilo',
-        'Greca Industrial'
+        'Perfiles de Cierre'
       ];
       
       const filtered = mockProducts

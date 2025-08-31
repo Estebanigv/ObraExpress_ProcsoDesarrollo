@@ -965,9 +965,11 @@ ${formData.comentarios}
                 </button>
                 <button 
                   onClick={() => {
-                    const productosElement = safeDocument.getElementById('productos-section');
-                    if (productosElement) {
-                      productosElement.scrollIntoView({ behavior: 'smooth' });
+                    if (typeof document !== 'undefined') {
+                      const productosElement = document.getElementById('productos-section');
+                      if (productosElement) {
+                        productosElement.scrollIntoView({ behavior: 'smooth' });
+                      }
                     }
                   }}
                   className="group relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 hover:from-slate-800 hover:via-slate-700 hover:to-slate-800 text-white font-medium py-3 md:py-4 px-6 md:px-8 rounded-2xl text-sm md:text-base transition-all duration-500 hover:scale-[1.03] shadow-2xl hover:shadow-slate-500/25 border border-slate-600/30 hover:border-slate-400/50"
@@ -1001,9 +1003,11 @@ ${formData.comentarios}
               <div className="mb-6 md:mb-8 animate-slide-up-delay">
                 <button 
                   onClick={() => {
-                    const reviewsElement = safeDocument.getElementById('reviews');
-                    if (reviewsElement) {
-                      reviewsElement.scrollIntoView({ behavior: 'smooth' });
+                    if (typeof document !== 'undefined') {
+                      const reviewsElement = document.getElementById('reviews');
+                      if (reviewsElement) {
+                        reviewsElement.scrollIntoView({ behavior: 'smooth' });
+                      }
                     }
                   }}
                   className="bg-black/20 backdrop-blur-md rounded-2xl p-4 md:p-6 inline-block w-full sm:w-auto hover:bg-black/30 transition-all duration-300 cursor-pointer hover:scale-105 transform"

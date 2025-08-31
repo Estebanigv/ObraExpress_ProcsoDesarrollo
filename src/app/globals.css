@@ -150,10 +150,16 @@
 elevenlabs-convai,
 elevenlabs-convai *,
 iframe[src*="elevenlabs"],
-div[class*="elevenlabs"]:not(#elevenlabs-widget-container),
-div[id*="elevenlabs"]:not(#elevenlabs-widget-container),
+div[class*="elevenlabs"],
+div[id*="elevenlabs"],
+#elevenlabs-widget-container,
 [data-elevenlabs],
-[class*="elevenlabs"] {
+[class*="elevenlabs"],
+.elevenlabs-convai,
+.elevenlabs-widget,
+.convai-widget,
+[id*="convai"],
+[class*="convai"] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
@@ -165,6 +171,15 @@ div[id*="elevenlabs"]:not(#elevenlabs-widget-container),
   overflow: hidden !important;
   z-index: -1 !important;
   pointer-events: none !important;
+}
+
+/* Ocultar botón PWA de Chrome si aparece */
+.pwa-install-prompt,
+[aria-label*="Install"],
+[aria-label*="Instalar"],
+button[title*="Install"],
+button[title*="Instalar"] {
+  display: none !important;
 }
 
 /* Ajustes específicos para pantallas pequeñas (13" y menores) */

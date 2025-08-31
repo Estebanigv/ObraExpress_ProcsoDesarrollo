@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminLayout, { AdminCard, AdminGrid, AdminStat, AdminButton } from '@/components/admin/AdminLayout';
 import type { ProductAdmin, ProductVariant, ProductStats, ProductIssue, AdminUser, UserColorsMap, UserColorConfig } from '@/modules/products/types/product.types';
@@ -26,7 +26,15 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // Recuperar la pestaña activa desde localStorage o usar 'dashboard' por defecto
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('obraexpress_admin_active_tab') || 'dashboard';
+      console.log('📱 Inicializando activeTab:', savedTab);
+      return savedTab;
+    }
+    return 'dashboard';
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
@@ -34,6 +42,10 @@ export default function AdminDashboard() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncCurrentStep, setSyncCurrentStep] = useState('');
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [autoSyncInterval, setAutoSyncInterval] = useState(15); // Minutos
+  const autoSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Estados para filtros avanzados del inventario
   const [inventoryView, setInventoryView] = useState('summary'); // 'summary', 'detailed', 'grouped'
@@ -257,7 +269,7 @@ export default function AdminDashboard() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   
   // Estado para datos de productos cargados dinámicamente (evita error HMR)
-  const [productosData, setProductosData] = useState<any>({ productos_policarbonato: [] });
+  const [productosData, setProductosData] = useState<any>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   // Inicialización del sistema de IA (Sprint 4)
@@ -306,6 +318,22 @@ export default function AdminDashboard() {
       if (savedTab) {
         setActiveTab(savedTab);
       }
+      
+      // Cargar última sincronización
+      const savedSyncTime = localStorage.getItem('obraexpress_last_sync_time');
+      if (savedSyncTime) {
+        setLastSyncTime(new Date(savedSyncTime));
+      }
+      
+      // Cargar preferencia de auto-sync
+      const savedAutoSync = localStorage.getItem('obraexpress_auto_sync');
+      const savedInterval = localStorage.getItem('obraexpress_auto_sync_interval');
+      if (savedAutoSync === 'true') {
+        setAutoSyncEnabled(true);
+      }
+      if (savedInterval) {
+        setAutoSyncInterval(parseInt(savedInterval));
+      }
     }
     setCheckingAuth(false);
   }, []);
@@ -316,41 +344,164 @@ export default function AdminDashboard() {
       localStorage.setItem('obraexpress_admin_active_tab', activeTab);
     }
   }, [activeTab]);
+  
+  // Auto-sincronización con intervalo configurable
+  useEffect(() => {
+    if (autoSyncEnabled && isAuthenticated && activeTab === 'inventario') {
+      // Sincronizar inmediatamente si han pasado más del intervalo configurado
+      const now = new Date();
+      const intervalAgo = new Date(now.getTime() - autoSyncInterval * 60 * 1000);
+      
+      if (!lastSyncTime || lastSyncTime < intervalAgo) {
+        console.log(`🔄 Sincronización automática necesaria (${autoSyncInterval} min)`);
+        handleSync();
+      }
+      
+      // Configurar intervalo dinámico
+      autoSyncIntervalRef.current = setInterval(() => {
+        console.log(`🔄 Auto-sincronización periódica iniciada (${autoSyncInterval} min)`);
+        handleSync();
+      }, autoSyncInterval * 60 * 1000); // Intervalo en milisegundos
+      
+      return () => {
+        if (autoSyncIntervalRef.current) {
+          clearInterval(autoSyncIntervalRef.current);
+        }
+      };
+    }
+  }, [autoSyncEnabled, autoSyncInterval, isAuthenticated, activeTab, lastSyncTime]);
 
-  // Cargar datos de productos desde SUPABASE - Optimizado para evitar carga infinita
-  const forceLoadData = async () => {
+  // Cargar datos de productos desde SUPABASE - MEJORADO con cache y retry logic
+  const forceLoadData = async (forceRefresh = false) => {
     try {
       setIsLoadingData(true);
-      console.log('Forzando carga de datos desde Supabase...');
+      console.log('🔍 Cargando productos...', { forceRefresh });
       
-      const response = await fetch('/api/admin/productos');
+      // Usar el nuevo endpoint simplificado con mejor manejo
+      const response = await fetch('/api/get-products-simple', {
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       
       if (response.ok) {
-        const result = await response.json();
-        console.log('Datos recibidos:', result);
+        const data = await response.json();
+        console.log('📊 Datos recibidos:', {
+          success: data.success,
+          total: data.total,
+          categorias: Object.keys(data.productos_por_categoria || {})
+        });
         
-        if (result.success && result.data) {
-          setProductosData(result.data);
-          console.log('Datos cargados:', result.total, 'productos');
+        if (data.success && data.productos_por_categoria) {
+          // Procesar datos al formato esperado por el admin
+          const processedData = {
+            success: true,
+            productos_por_categoria: data.productos_por_categoria,
+            total: data.total
+          };
+          
+          setProductosData(processedData);
+          console.log('✅ Datos cargados correctamente:', data.total, 'productos');
+          
+          // Guardar en localStorage como backup
+          if (data.total > 0) {
+            localStorage.setItem('obraexpress_admin_productos_cache', JSON.stringify(processedData));
+            localStorage.setItem('obraexpress_admin_productos_timestamp', Date.now().toString());
+            console.log('💾 Cache actualizado con', data.total, 'productos');
+          }
+        } else {
+          console.warn('⚠️ API retornó success=false o sin datos:', data.error || 'Error desconocido');
+          setSyncStatus('Error: ' + (data.error || 'No hay productos en la base de datos'));
+          loadFromCache();
         }
+      } else {
+        console.error('❌ Error en respuesta:', response.status, response.statusText);
+        loadFromCache();
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('💥 Error cargando productos:', error);
+      loadFromCache();
     } finally {
       setIsLoadingData(false);
+    }
+  };
+
+  // Función para cargar desde cache con validación
+  const loadFromCache = () => {
+    const cachedData = localStorage.getItem('obraexpress_admin_productos_cache');
+    const cacheTimestamp = localStorage.getItem('obraexpress_admin_productos_timestamp');
+    
+    if (cachedData) {
+      try {
+        const data = JSON.parse(cachedData);
+        if (data && data.productos_por_categoria) {
+          setProductosData(data);
+          const cacheAge = cacheTimestamp ? Math.round((Date.now() - parseInt(cacheTimestamp)) / 60000) : '?';
+          setSyncStatus(`📦 Usando datos en caché (${data.total || 0} productos, ${cacheAge} min)`);
+          setTimeout(() => setSyncStatus(''), 8000);
+          console.log('📦 Productos cargados desde caché:', data.total || 0);
+        } else {
+          console.warn('⚠️ Cache vacío o sin productos válidos');
+          setSyncStatus('No hay productos disponibles. Ejecuta una sincronización.');
+          setTimeout(() => setSyncStatus(''), 8000);
+        }
+      } catch (e) {
+        console.error('❌ Error parseando caché:', e);
+        localStorage.removeItem('obraexpress_admin_productos_cache');
+        localStorage.removeItem('obraexpress_admin_productos_timestamp');
+        setSyncStatus('Error en datos locales. Ejecuta una sincronización.');
+        setTimeout(() => setSyncStatus(''), 8000);
+      }
+    } else {
+      console.warn('⚠️ No hay cache disponible');
+      setSyncStatus('No hay datos disponibles. Ejecuta una sincronización.');
+      setTimeout(() => setSyncStatus(''), 8000);
     }
   };
 
   useEffect(() => {
     const loadProductDataFromSupabase = async () => {
       console.log('🔍 UseEffect ejecutado:', { activeTab, hasProductosData: !!productosData, isLoadingData });
-      // Solo cargar si estamos en la pestaña de inventario y no tenemos datos ya cargados
-      if (activeTab !== 'inventario' || productosData || isLoadingData) {
-        console.log('⚠️ Carga cancelada:', { activeTab, hasProductosData: !!productosData, isLoadingData });
+      // Solo cargar si estamos en la pestaña de inventario y no estamos cargando
+      if (activeTab !== 'inventario' || isLoadingData) {
+        console.log('⚠️ Carga cancelada:', { activeTab, isLoadingData });
         return;
       }
-      
-      await forceLoadData();
+
+      // Si no tenemos datos, intentar cargar desde caché primero
+      if (!productosData) {
+        console.log('📦 productosData es null, intentando cargar desde caché...');
+        const cachedData = localStorage.getItem('obraexpress_admin_productos_cache');
+        if (cachedData) {
+          try {
+            const data = JSON.parse(cachedData);
+            if (data && data.productos_por_categoria && Object.keys(data.productos_por_categoria).length > 0) {
+              setProductosData(data);
+              const cacheTimestamp = localStorage.getItem('obraexpress_admin_productos_timestamp');
+              const cacheAge = cacheTimestamp ? Math.round((Date.now() - parseInt(cacheTimestamp)) / 60000) : '?';
+              console.log('✅ Datos cargados desde caché tras F5:', data.total || 0, 'productos,', cacheAge, 'min');
+              return; // No necesitamos cargar desde el servidor si tenemos datos válidos en caché
+            } else {
+              console.log('⚠️ Caché inválido o vacío');
+            }
+          } catch (e) {
+            console.warn('❌ Error parseando caché:', e);
+            localStorage.removeItem('obraexpress_admin_productos_cache');
+            localStorage.removeItem('obraexpress_admin_productos_timestamp');
+          }
+        } else {
+          console.log('⚠️ No hay datos en caché');
+        }
+        
+        // Si no hay caché válido, cargar desde el servidor
+        console.log('🌐 Cargando desde servidor...');
+        await forceLoadData();
+      } else {
+        console.log('✅ productosData ya existe, no es necesario cargar');
+      }
     };
 
     if (isAuthenticated) {
@@ -359,6 +510,29 @@ export default function AdminDashboard() {
       setIsLoadingData(false);
     }
   }, [isAuthenticated, activeTab]);
+
+  // UseEffect adicional para manejar cambio a pestaña inventario (incluyendo F5)
+  useEffect(() => {
+    if (activeTab === 'inventario' && isAuthenticated && !productosData && !isLoadingData) {
+      console.log('🔄 Forzando carga de inventario al cambiar a pestaña');
+      // Intentar cargar desde caché inmediatamente
+      const cachedData = localStorage.getItem('obraexpress_admin_productos_cache');
+      if (cachedData) {
+        try {
+          const data = JSON.parse(cachedData);
+          if (data && data.productos_por_categoria && Object.keys(data.productos_por_categoria).length > 0) {
+            setProductosData(data);
+            console.log('✅ Datos de inventario restaurados desde caché al cambiar pestaña');
+            return;
+          }
+        } catch (e) {
+          console.warn('❌ Error parseando caché en cambio de pestaña:', e);
+        }
+      }
+      // Si no hay caché, forzar carga desde servidor
+      forceLoadData(false);
+    }
+  }, [activeTab]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -384,6 +558,210 @@ export default function AdminDashboard() {
   // FUNCIONES DE CÁLCULO (deben estar antes de ser usadas)
   const calcularCostoProveedor = (precioNeto: number) => Math.round(precioNeto * 0.54);
   const calcularGanancia = (precioNeto: number) => precioNeto - calcularCostoProveedor(precioNeto);
+  
+  // Función para detectar y mostrar unidades correctamente SIN CONVERTIR valores
+  const detectarUnidadDimension = (valor: string | number) => {
+    if (!valor || valor === '' || valor === 'N/A') {
+      return { valor: 'N/A', unidad: '' };
+    }
+    
+    // Limpiar el valor de cualquier unidad existente
+    let valorNumerico = valor.toString().replace(/mm|cm|m|mts/gi, '').trim();
+    valorNumerico = valorNumerico.replace(',', '.'); // Normalizar decimales
+    
+    const num = parseFloat(valorNumerico);
+    
+    if (isNaN(num)) {
+      return { valor: 'N/A', unidad: '' };
+    }
+    
+    // Reglas de detección de unidades basadas en el valor:
+    if (num < 1.0) {
+      // Valores menores a 1 son metros decimales (0.81 mts)
+      const valorFormateado = num.toString().replace('.', ',');
+      return { valor: valorFormateado, unidad: 'mts' };
+    } else if (num <= 10.0) {
+      // Son METROS - mostrar con formato chileno y dos decimales
+      const valorFormateado = num.toFixed(2).replace('.', ',');
+      return { valor: valorFormateado, unidad: 'mts' };
+    } else if (num <= 100) {
+      // Son CENTÍMETROS - mantener valor original
+      return { valor: num.toString(), unidad: 'cm' };
+    } else {
+      // Son MILÍMETROS - mantener valor original  
+      return { valor: num.toString(), unidad: 'mm' };
+    }
+  };
+
+  // Función de sincronización mejorada con Google Sheets
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setSyncProgress(0);
+    setSyncCancelled(false); // Resetear cancelación
+    setSyncStatus('Sincronizando con Google Sheets...');
+    setSyncCurrentStep('Conectando con Google Sheets...');
+    
+    try {
+      // Progreso suave de 0 a 25%
+      for (let i = 0; i <= 25; i += 5) {
+        setSyncProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      setSyncCurrentStep('Obteniendo datos del servidor...');
+      
+      const response = await fetch('/api/sync-products-csv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      // Progreso de 25 a 55%
+      for (let i = 25; i <= 55; i += 5) {
+        setSyncProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 80));
+      }
+      
+      setSyncCurrentStep('Procesando productos...');
+      
+      if (response.ok) {
+        // Progreso de 55 a 78%
+        for (let i = 55; i <= 78; i += 3) {
+          setSyncProgress(i);
+          await new Promise(resolve => setTimeout(resolve, 60));
+        }
+        setSyncCurrentStep('Actualizando base de datos...');
+        
+        const result = await response.json();
+        console.log('✅ Sincronización exitosa:', result.stats);
+        setSyncStatus(`Sincronización completada - ${result.stats?.totalVariantes || 0} productos actualizados`);
+        
+        // Progreso de 78 a 85%
+        for (let i = 78; i <= 85; i += 2) {
+          setSyncProgress(i);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        setSyncCurrentStep('Preparando recarga de datos...');
+        
+        // Esperar más tiempo para que Supabase procese completamente los datos
+        setTimeout(async () => {
+          setSyncCurrentStep('Limpiando caché...');
+          // Limpiar cache antes de recargar
+          localStorage.removeItem('obraexpress_admin_productos_cache');
+          localStorage.removeItem('obraexpress_admin_productos_timestamp');
+          
+          setSyncProgress(88);
+          setSyncCurrentStep('Recargando datos actualizados...');
+          
+          // Forzar recarga completa desde el servidor con retry mejorado
+          let attempts = 0;
+          const maxAttempts = 5;
+          let reloadSuccessful = false;
+          
+          while (attempts < maxAttempts && !reloadSuccessful) {
+            try {
+              console.log(`🔄 Intento de recarga ${attempts + 1}/${maxAttempts}`);
+              setSyncCurrentStep(`Intento ${attempts + 1}/${maxAttempts} - Obteniendo datos frescos...`);
+              
+              // Forzar recarga
+              await forceLoadData(true);
+              
+              // Esperar un poco para que React actualice el estado
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              // Verificar que los datos se cargaron correctamente
+              const freshDataResponse = await fetch('/api/get-products-simple', {
+                method: 'GET',
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+              });
+              
+              if (freshDataResponse.ok) {
+                const freshData = await freshDataResponse.json();
+                if (freshData.success && freshData.productos_por_categoria && Object.keys(freshData.productos_por_categoria).length > 0) {
+                  // Progreso de 88 a 95%
+                  for (let i = 88; i <= 95; i += 2) {
+                    setSyncProgress(i);
+                    await new Promise(resolve => setTimeout(resolve, 80));
+                  }
+                  setSyncCurrentStep('Guardando datos actualizados...');
+                  
+                  // Procesar datos al formato correcto
+                  const processedData = {
+                    success: true,
+                    productos_por_categoria: freshData.productos_por_categoria,
+                    total: freshData.total
+                  };
+                  
+                  // Actualizar el estado con datos frescos
+                  setProductosData(processedData);
+                  
+                  // IMPORTANTE: Guardar en localStorage para persistencia
+                  localStorage.setItem('obraexpress_admin_productos_cache', JSON.stringify(processedData));
+                  localStorage.setItem('obraexpress_admin_productos_timestamp', Date.now().toString());
+                  
+                  // Progreso final de 95 a 100%
+                  for (let i = 95; i <= 100; i++) {
+                    setSyncProgress(i);
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                  }
+                  setSyncCurrentStep('¡Sincronización completada!');
+                  
+                  // Guardar tiempo de última sincronización
+                  const syncTime = new Date();
+                  setLastSyncTime(syncTime);
+                  localStorage.setItem('obraexpress_last_sync_time', syncTime.toISOString());
+                  
+                  reloadSuccessful = true;
+                  setSyncStatus(`✅ ${processedData.total || 0} productos con precios actualizados correctamente`);
+                  setTimeout(() => setSyncStatus(''), 5000);
+                  console.log('✅ Sincronización y recarga exitosa:', processedData.total, 'productos - datos guardados en caché');
+                  break;
+                }
+              }
+            } catch (e) {
+              console.warn(`❌ Intento ${attempts + 1} falló:`, e);
+            }
+            attempts++;
+            if (attempts < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Esperar más tiempo entre intentos
+            }
+          }
+          
+          if (!reloadSuccessful) {
+            setSyncProgress(90);
+            setSyncCurrentStep('Error en recarga - datos sincronizados');
+            setSyncStatus('⚠️ Precios sincronizados - recarga la página manualmente para ver los cambios actualizados');
+            setTimeout(() => setSyncStatus(''), 10000);
+          }
+          
+          // Limpiar progreso después de un tiempo
+          setTimeout(() => {
+            setSyncProgress(0);
+            setSyncCurrentStep('');
+          }, 8000);
+        }, 3000); // Dar más tiempo inicial para procesar
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Error en sincronización:', errorData);
+        setSyncProgress(0);
+        setSyncCurrentStep('Error en sincronización');
+        setSyncStatus('Error en la sincronización - ' + (errorData.error || 'Error desconocido'));
+        setTimeout(() => setSyncStatus(''), 5000);
+      }
+    } catch (error) {
+      console.error('💥 Error en sincronización:', error);
+      setSyncProgress(0);
+      setSyncCurrentStep('Error de conexión');
+      setSyncStatus('Error en sincronización');
+      setTimeout(() => setSyncStatus(''), 5000);
+    } finally {
+      setIsSyncing(false);
+      // Limpiar el step después de un tiempo si no hay errores
+      setTimeout(() => {
+        setSyncCurrentStep('');
+      }, 6000);
+    }
+  };
 
   // Datos REALES del inventario - CORREGIDO para usar productos_por_categoria
   const allVariantes = Object.values(productosData?.productos_por_categoria || {}).flatMap((productos: any) =>
@@ -551,83 +929,6 @@ export default function AdminDashboard() {
       setSyncCancelled(false);
       setSyncStatus('');
     }, 2000);
-  };
-
-  // Función para manejar sincronización con barra de progreso
-  const handleSync = async () => {
-    setIsSyncing(true);
-    setSyncProgress(0);
-    setSyncCurrentStep('Iniciando sincronización...');
-    setSyncStatus('Cargando productos desde Supabase...');
-    setSyncCancelled(false);
-    
-    try {
-      // Progreso gradual más realista con verificaciones de cancelación
-      if (syncCancelled) return;
-      setSyncProgress(5);
-      setSyncCurrentStep('Inicializando conexión...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (syncCancelled) return;
-      setSyncProgress(12);
-      setSyncCurrentStep('Conectando con Google Sheets...');
-      await new Promise(resolve => setTimeout(resolve, 600));
-      
-      if (syncCancelled) return;
-      setSyncProgress(18);
-      setSyncCurrentStep('Verificando credenciales...');
-      await new Promise(resolve => setTimeout(resolve, 400));
-      
-      if (syncCancelled) return;
-      setSyncProgress(25);
-      setSyncCurrentStep('Obteniendo pestañas disponibles...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (syncCancelled) return;
-      setSyncProgress(33);
-      setSyncCurrentStep('Descargando datos de Policarbonatos...');
-      await new Promise(resolve => setTimeout(resolve, 700));
-      
-      if (syncCancelled) return;
-      setSyncProgress(41);
-      setSyncCurrentStep('Descargando datos de Perfiles...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // CARGA REAL DE DATOS DESDE SUPABASE
-      if (syncCancelled) return;
-      setSyncProgress(50);
-      setSyncCurrentStep('Cargando productos desde Supabase...');
-      
-      // Limpiar datos anteriores
-      setProductosData(null);
-      
-      // Usar la función de carga
-      await forceLoadData();
-      
-      if (syncCancelled) return;
-      setSyncProgress(100);
-      setSyncCurrentStep('¡Sincronización completada!');
-      setSyncStatus('✅ Productos cargados exitosamente');
-      await new Promise(resolve => setTimeout(resolve, 500));
-        
-    } catch (error) {
-      console.error('Error en sincronización:', error);
-      setSyncProgress(0);
-      setSyncCurrentStep('Error de conexión');
-      setSyncStatus('❌ Error durante la sincronización');
-    } finally {
-      // Limpiar progreso después de 3 segundos para que se vea el 100%
-      setTimeout(() => {
-        setIsSyncing(false);
-        setSyncProgress(0);
-        setSyncCurrentStep('');
-      }, 3000);
-      
-      // Limpiar mensaje después de 8 segundos
-      setTimeout(() => {
-        setSyncStatus('');
-      }, 8000);
-    }
   };
 
   // Análisis del proveedor
@@ -812,6 +1113,8 @@ export default function AdminDashboard() {
           ...v,
           categoria: p.categoria,
           productoNombre: p.nombre,
+          tipo: v.tipo || p.tipo || 'N/A', // Tipo ya viene de la variante
+          ancho: v.ancho || 'N/A', // Ancho ya viene de la variante
           costo_proveedor: costoProveedor,
           precio_con_iva: precioConIva,
           ganancia: ganancia,
@@ -837,7 +1140,7 @@ export default function AdminDashboard() {
       totalCost: allVariantesInv.reduce((sum, v) => sum + (v.costo_proveedor * (v.stock || 0)), 0),
       potentialProfit: allVariantesInv.reduce((sum, v) => sum + (v.ganancia * (v.stock || 0)), 0),
       proveedores: [...new Set(allVariantesInv.map(v => v.proveedor))],
-      categorias: [...new Set(allVariantesInv.map(v => v.tipo))]
+      categorias: [...new Set(allVariantesInv.map(v => v.tipo).filter(tipo => tipo && tipo.trim() !== ''))]
     };
 
     // Filtros y ordenamiento
@@ -1041,51 +1344,6 @@ export default function AdminDashboard() {
     return (
       <div className="flex justify-center">
         <div className="w-full max-w-7xl space-y-6">
-        {/* Panel de Reglas de Negocio */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-200 p-6 mb-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-blue-900 mb-3">📋 Reglas de Negocio - Inventario Web</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <h4 className="font-semibold text-blue-800 mb-2">💰 Precios</h4>
-                  <ul className="space-y-1 text-blue-700">
-                    <li>• <strong>Precio Neto:</strong> Precio final para cliente (incluye despacho)</li>
-                    <li>• Los precios mostrados son los que ve el cliente en la web</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-800 mb-2">📦 Mínimos de Compra</h4>
-                  <ul className="space-y-1 text-blue-700">
-                    <li>• <strong>Estándar:</strong> 10 unidades mínimas</li>
-                    <li>• <strong>Excepción:</strong> Policarbonato Compacto (sin mínimo)</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-800 mb-2">📊 Niveles de Stock</h4>
-                  <ul className="space-y-1 text-blue-700">
-                    <li>• <strong className="text-red-600">Crítico:</strong> Menos de 20 unidades</li>
-                    <li>• <strong className="text-blue-600">Medio:</strong> 20 a 49 unidades</li>
-                    <li>• <strong className="text-green-600">Full:</strong> 50+ unidades</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-800 mb-2">🌐 Disponibilidad Web</h4>
-                  <ul className="space-y-1 text-blue-700">
-                    <li>• Productos visibles: Stock ≥ 10 unidades</li>
-                    <li>• Auto-ocultos: Stock menor a 10 unidades</li>
-                    <li>• SKUs totales incluye visibles + ocultos</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Header Profesional Integrado */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -1115,6 +1373,15 @@ export default function AdminDashboard() {
               </div>
               
               <button
+                onClick={() => forceLoadData(true)}
+                className="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Recargar Datos
+              </button>
+              <button
                 onClick={handleSync}
                 disabled={isSyncing}
                 className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
@@ -1122,13 +1389,33 @@ export default function AdminDashboard() {
                 {isSyncing ? 'Sincronizando...' : 'Sincronizar Precios'}
               </button>
               <button
-                onClick={exportToExcelInv}
+                onClick={handleExportExcel}
                 className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl"
               >
                 Exportar Excel
               </button>
             </div>
           </div>
+          
+          {/* Status Message */}
+          {syncStatus && (
+            <div className={`mt-4 p-4 rounded-lg shadow-md ${
+              syncStatus.includes('correctamente') || syncStatus.includes('completada') ? 
+                'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+              syncStatus.includes('Error') || syncStatus.includes('error') ? 
+                'bg-red-50 text-red-800 border border-red-200' :
+              'bg-blue-50 text-blue-800 border border-blue-200'
+            }`}>
+              <div className="flex items-center">
+                <div className={`w-2 h-2 rounded-full mr-3 ${
+                  syncStatus.includes('correctamente') || syncStatus.includes('completada') ? 'bg-emerald-500' :
+                  syncStatus.includes('Error') || syncStatus.includes('error') ? 'bg-red-500' :
+                  'bg-blue-500'
+                }`}></div>
+                {syncStatus}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Dashboard Profesional de Métricas - Botones Dinámicos */}
@@ -1136,79 +1423,103 @@ export default function AdminDashboard() {
           {/* Total SKUs */}
           <button 
             onClick={() => setActiveFilter('todos')}
-            className={`bg-white rounded-xl p-6 shadow-sm border transition-all duration-200 text-left ${
+            className={`bg-white rounded-xl p-6 border transition-all duration-300 text-left transform ${
               activeFilter === 'todos' 
-                ? 'border-slate-400 shadow-md ring-2 ring-slate-200' 
-                : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                ? 'border-slate-500 shadow-xl ring-4 ring-slate-300 scale-105 bg-slate-50' 
+                : 'border-slate-200 hover:border-slate-400 hover:shadow-lg hover:scale-102 hover:bg-slate-25 shadow-sm'
             }`}
           >
-            <div className="text-3xl font-bold text-slate-900">{statsInvGlobal.totalVariants}</div>
-            <div className="text-sm text-slate-500 mt-1 font-medium">Total SKUs</div>
+            <div className={`text-3xl font-bold transition-colors ${
+              activeFilter === 'todos' ? 'text-slate-800' : 'text-slate-900'
+            }`}>{statsInvGlobal.totalVariants}</div>
+            <div className={`text-sm mt-1 font-bold transition-colors ${
+              activeFilter === 'todos' ? 'text-slate-700' : 'text-slate-500'
+            }`}>Total SKUs</div>
           </button>
           
           {/* Visibles en Web */}
           <button 
             onClick={() => setActiveFilter('visibles')}
-            className={`bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-6 shadow-sm border transition-all duration-200 text-left ${
+            className={`bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-6 border transition-all duration-300 text-left transform ${
               activeFilter === 'visibles' 
-                ? 'border-emerald-400 shadow-md ring-2 ring-emerald-200' 
-                : 'border-emerald-200 hover:border-emerald-300 hover:shadow-sm'
+                ? 'border-emerald-500 shadow-xl ring-4 ring-emerald-300 scale-105 from-emerald-100 to-green-100' 
+                : 'border-emerald-200 hover:border-emerald-400 hover:shadow-lg hover:scale-102 hover:from-emerald-100 hover:to-green-100 shadow-sm'
             }`}
           >
-            <div className="text-3xl font-bold text-emerald-700">{statsInvGlobal.visibleProducts}</div>
-            <div className="text-sm text-emerald-600 mt-1 font-medium">Visibles en Web</div>
+            <div className={`text-3xl font-bold transition-colors ${
+              activeFilter === 'visibles' ? 'text-emerald-800' : 'text-emerald-700'
+            }`}>{statsInvGlobal.visibleProducts}</div>
+            <div className={`text-sm mt-1 font-bold transition-colors ${
+              activeFilter === 'visibles' ? 'text-emerald-700' : 'text-emerald-600'
+            }`}>Visibles en Web</div>
           </button>
           
           {/* Ocultos con Notificación */}
           <button 
             onClick={() => setActiveFilter('ocultos')}
-            className={`bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-6 shadow-sm border transition-all duration-200 text-left relative ${
+            className={`bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-6 border transition-all duration-300 text-left transform ${
               activeFilter === 'ocultos' 
-                ? 'border-slate-400 shadow-md ring-2 ring-slate-200' 
-                : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                ? 'border-slate-500 shadow-xl ring-4 ring-slate-300 scale-105 from-slate-100 to-gray-100' 
+                : 'border-slate-200 hover:border-slate-400 hover:shadow-lg hover:scale-102 hover:from-slate-100 hover:to-gray-100 shadow-sm'
             }`}
           >
-            <div className="text-3xl font-bold text-slate-700">{statsInvGlobal.hiddenProducts}</div>
-            <div className="text-sm text-slate-500 mt-1 font-medium">Ocultos</div>
+            <div className={`text-3xl font-bold transition-colors ${
+              activeFilter === 'ocultos' ? 'text-slate-800' : 'text-slate-700'
+            }`}>{statsInvGlobal.hiddenProducts}</div>
+            <div className={`text-sm mt-1 font-bold transition-colors ${
+              activeFilter === 'ocultos' ? 'text-slate-700' : 'text-slate-500'
+            }`}>Ocultos</div>
           </button>
           
           {/* Stock Crítico con Notificación */}
           <button 
             onClick={() => setActiveFilter('criticos')}
-            className={`bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-6 shadow-sm border transition-all duration-200 text-left relative ${
+            className={`bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-6 border transition-all duration-300 text-left transform ${
               activeFilter === 'criticos' 
-                ? 'border-amber-400 shadow-md ring-2 ring-amber-200' 
-                : 'border-amber-200 hover:border-amber-300 hover:shadow-sm'
+                ? 'border-amber-500 shadow-xl ring-4 ring-amber-300 scale-105 from-amber-100 to-yellow-100' 
+                : 'border-amber-200 hover:border-amber-400 hover:shadow-lg hover:scale-102 hover:from-amber-100 hover:to-yellow-100 shadow-sm'
             }`}
           >
-            <div className="text-3xl font-bold text-amber-700">{statsInvGlobal.lowStockCount}</div>
-            <div className="text-sm text-amber-600 mt-1 font-medium">Stock Crítico</div>
+            <div className={`text-3xl font-bold transition-colors ${
+              activeFilter === 'criticos' ? 'text-amber-800' : 'text-amber-700'
+            }`}>{statsInvGlobal.lowStockCount}</div>
+            <div className={`text-sm mt-1 font-bold transition-colors ${
+              activeFilter === 'criticos' ? 'text-amber-700' : 'text-amber-600'
+            }`}>Stock Crítico</div>
           </button>
           
           {/* Stock Medio */}
           <button 
             onClick={() => setActiveFilter('medios')}
-            className={`bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 shadow-sm border transition-all duration-200 text-left ${
+            className={`bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border transition-all duration-300 text-left transform ${
               activeFilter === 'medios' 
-                ? 'border-blue-400 shadow-md ring-2 ring-blue-200' 
-                : 'border-blue-200 hover:border-blue-300 hover:shadow-sm'
+                ? 'border-blue-500 shadow-xl ring-4 ring-blue-300 scale-105 from-blue-100 to-indigo-100' 
+                : 'border-blue-200 hover:border-blue-400 hover:shadow-lg hover:scale-102 hover:from-blue-100 hover:to-indigo-100 shadow-sm'
             }`}
           >
-            <div className="text-3xl font-bold text-blue-700">{statsInvGlobal.moderateStockCount}</div>
-            <div className="text-sm text-blue-600 mt-1 font-medium">Stock Medio</div>
+            <div className={`text-3xl font-bold transition-colors ${
+              activeFilter === 'medios' ? 'text-blue-800' : 'text-blue-700'
+            }`}>{statsInvGlobal.moderateStockCount}</div>
+            <div className={`text-sm mt-1 font-bold transition-colors ${
+              activeFilter === 'medios' ? 'text-blue-700' : 'text-blue-600'
+            }`}>Stock Medio</div>
           </button>
           
           {/* Sin Stock */}
           <button 
             onClick={() => setActiveFilter('sinstock')}
-            className={`bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-6 shadow-sm border transition-all duration-200 text-left ${
+            className={`bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-6 border transition-all duration-300 text-left transform ${
               activeFilter === 'sinstock' 
-                ? 'border-gray-400 shadow-md ring-2 ring-gray-200' 
-                : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                ? 'border-gray-500 shadow-xl ring-4 ring-gray-300 scale-105 from-gray-100 to-slate-100' 
+                : 'border-gray-200 hover:border-gray-400 hover:shadow-lg hover:scale-102 hover:from-gray-100 hover:to-slate-100 shadow-sm'
             }`}
           >
-            <div className="text-3xl font-bold text-gray-700">{statsInvGlobal.outOfStockCount}</div>
-            <div className="text-sm text-gray-600 mt-1 font-medium">Sin Stock</div>
+            <div className={`text-3xl font-bold transition-colors ${
+              activeFilter === 'sinstock' ? 'text-gray-800' : 'text-gray-700'
+            }`}>{statsInvGlobal.outOfStockCount}</div>
+            <div className={`text-sm mt-1 font-bold transition-colors ${
+              activeFilter === 'sinstock' ? 'text-gray-700' : 'text-gray-600'
+            }`}>Sin Stock</div>
           </button>
         </div>
 
@@ -1322,8 +1633,8 @@ export default function AdminDashboard() {
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               >
                 <option value="all">Todas</option>
-                {statsInv.categorias.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {statsInv.categorias.map((cat, index) => (
+                  <option key={`categoria-${cat}-${index}`} value={cat}>{cat}</option>
                 ))}
               </select>
             </div>
@@ -1427,14 +1738,14 @@ export default function AdminDashboard() {
           <div className="flex justify-center">
             <div className="w-full max-w-full">
               <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-                {/* Excel Link Bar */}
+                {/* BARRA SUPERIOR - Controles de Excel y Ordenamiento */}
                 <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-emerald-50 to-blue-50 border-b border-slate-200">
                   <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6M9 17h6M9 17H7a2 2 0 01-2-2V9a2 2 0 012-2h2m10 10h2a2 2 0 002-2V9a2 2 0 00-2-2h-2m-6 0V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2" />
                     </svg>
-                    <span className="font-medium">Tip:</span>
-                    <span>Usa scroll para navegar. Columnas redimensionables como Excel</span>
+                    <span className="font-medium">Controles de Excel:</span>
+                    <span>Exportar, Cargar y Editar datos</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Selector de Ordenamiento */}
@@ -1462,71 +1773,184 @@ export default function AdminDashboard() {
                     {/* Separador visual */}
                     <div className="w-px h-6 bg-slate-300"></div>
 
-                    {/* Botón Exportar Excel */}
-                    <button
-                      onClick={handleExportExcel}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 hover:shadow-lg transition-all transform hover:scale-105 group"
-                      title={`Exportar ${filteredProductsInv.reduce((total, product) => total + product.variantes.length, 0)} productos filtrados`}
-                    >
-                      <svg className="w-4 h-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span className="text-xs font-medium">
-                        Exportar ({filteredProductsInv.reduce((total, product) => total + product.variantes.length, 0)})
-                      </span>
-                      {selectedStockLevel !== 'all' && (
-                        <span className="px-1.5 py-0.5 bg-white/20 rounded text-xs">
-                          {selectedStockLevel === 'critical' ? '🔴' : selectedStockLevel === 'medium' ? '🟡' : '🟢'}
+                    {/* CONTROLES DE EXCEL */}
+                    <div className="flex items-center gap-2">
+                      {/* Botón Exportar Excel */}
+                      <button
+                        onClick={handleExportExcel}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 hover:shadow-lg transition-all transform hover:scale-105 group"
+                        title={`Exportar ${filteredProductsInv.reduce((total, product) => total + product.variantes.length, 0)} productos filtrados`}
+                      >
+                        <svg className="w-4 h-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span className="text-xs font-medium">
+                          Exportar ({filteredProductsInv.reduce((total, product) => total + product.variantes.length, 0)})
                         </span>
-                      )}
+                        {selectedStockLevel !== 'all' && (
+                          <span className="px-1.5 py-0.5 bg-white/20 rounded text-xs">
+                            {selectedStockLevel === 'critical' ? '🔴' : selectedStockLevel === 'medium' ? '🟡' : '🟢'}
+                          </span>
+                        )}
+                      </button>
+
+                      {/* Botón DEBUG - Cargar Datos */}
+                      <button
+                        onClick={forceLoadData}
+                        disabled={isLoadingData}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all disabled:opacity-50"
+                        title="DEBUG: Forzar carga de datos"
+                      >
+                        <svg className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span className="text-xs font-medium">
+                          {isLoadingData ? 'Cargando...' : 'CARGAR'}
+                        </span>
+                      </button>
+                      
+                      {/* Botón Editar Excel Original */}
+                      <a
+                        href="https://docs.google.com/spreadsheets/d/1n9wJx1-lUDcoIxV4uo6GkB8eywdH2CsGIUlQTt_hjIc/edit?gid=147076884#gid=147076884"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors group"
+                      >
+                        <svg className="w-4 h-4 text-green-600 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z"/>
+                          <path d="M8 13h2v4H8zm3 0h2v4h-2zm3 0h2v4h-2z"/>
+                        </svg>
+                        <span className="text-xs font-medium text-slate-700">Editar Excel Original</span>
+                        <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* BARRA INFERIOR - Controles de Sincronización */}
+                <div className="flex items-center justify-between px-6 py-3 bg-gradient-to-r from-blue-50 to-slate-50 border-b border-slate-200">
+                  {/* Auto-sync selector - Solo icono y selector */}
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <select
+                      value={autoSyncEnabled ? autoSyncInterval.toString() : '0'}
+                      onChange={(e) => {
+                        const minutes = parseInt(e.target.value);
+                        setAutoSyncEnabled(minutes > 0);
+                        setAutoSyncInterval(minutes > 0 ? minutes : 15);
+                        localStorage.setItem('obraexpress_auto_sync', (minutes > 0).toString());
+                        localStorage.setItem('obraexpress_auto_sync_interval', (minutes > 0 ? minutes : 15).toString());
+                      }}
+                      className="text-xs bg-transparent border-none outline-none font-medium text-slate-700 cursor-pointer"
+                    >
+                      <option value="0">Desactivado</option>
+                      <option value="5">5 min</option>
+                      <option value="10">10 min</option>
+                      <option value="15">15 min</option>
+                    </select>
+                  </div>
+
+                  {/* Centro - Última sincronización */}
+                  <div className="flex items-center">
+                    {lastSyncTime && (
+                      <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-blue-100 shadow-sm">
+                        <span className="text-xs font-black text-blue-700">
+                          {lastSyncTime.toLocaleDateString('es-CL', { 
+                            day: '2-digit', 
+                            month: '2-digit', 
+                            year: '2-digit' 
+                          })}
+                        </span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-xs font-black text-green-700">
+                          {lastSyncTime.toLocaleTimeString('es-CL', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true 
+                          })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Derecha - Botones de acción (solo iconos) */}
+                  <div className="flex items-center gap-2">
+                    {/* Verificar Supabase */}
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/admin/verify-supabase');
+                          const result = await response.json();
+                          if (result.success) {
+                            const samples = result.stats.sampleProducts || [];
+                            const sampleInfo = samples.map(p => 
+                              `SKU: ${p.codigo} | Tipo: ${p.tipo} | Ancho: ${p.ancho} | Stock: ${p.stock}`
+                            ).join('\n');
+                            
+                            alert(`✅ Supabase conectado correctamente\n\nProductos en DB: ${result.stats.totalProducts}\n\nMuestra de productos:\n${sampleInfo}\n\nColumnas disponibles:\n${result.stats.availableColumns.join(', ')}`);
+                          } else {
+                            alert(`❌ Error en Supabase: ${result.error}`);
+                          }
+                        } catch (error) {
+                          alert(`💥 Error verificando Supabase: ${error.message}`);
+                        }
+                      }}
+                      className="w-10 h-10 flex items-center justify-center bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-all"
+                      title="Verificar conexión con Supabase"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     </button>
 
-                    {/* Botón Sincronizar */}
+                    {/* Limpiar productos inválidos */}
+                    <button
+                      onClick={async () => {
+                        if (!confirm('¿Estás seguro de que quieres eliminar productos con SKUs inválidos? Esta acción no se puede deshacer.')) {
+                          return;
+                        }
+                        
+                        try {
+                          const response = await fetch('/api/admin/clean-invalid-products', {
+                            method: 'POST'
+                          });
+                          const result = await response.json();
+                          
+                          if (result.success) {
+                            alert(`✅ Limpieza completada\n\nProductos eliminados: ${result.productosEliminados}\nProductos revisados: ${result.productosRevisados}\n\n${result.message}`);
+                            
+                            // Recargar datos después de la limpieza
+                            forceLoadData(true);
+                          } else {
+                            alert(`❌ Error en limpieza: ${result.error}`);
+                          }
+                        } catch (error) {
+                          alert(`💥 Error ejecutando limpieza: ${error.message}`);
+                        }
+                      }}
+                      className="w-10 h-10 flex items-center justify-center bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all"
+                      title="Eliminar productos con SKUs inválidos"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                    
+                    {/* Botón Sincronizar - Solo icono */}
                     <button
                       onClick={handleSync}
                       disabled={isSyncing}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed group"
-                      title="Sincronizar con Google Sheets"
+                      className="w-10 h-10 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed group"
+                      title={isSyncing ? 'Sincronizando...' : 'Sincronizar con Google Sheets'}
                     >
-                      <svg className={`w-4 h-4 transition-transform ${isSyncing ? 'animate-spin' : 'group-hover:rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-5 h-5 transition-transform ${isSyncing ? 'animate-spin' : 'group-hover:rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      <span className="text-xs font-medium">
-                        {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
-                      </span>
                     </button>
-
-                    {/* Botón DEBUG - Cargar Datos */}
-                    <button
-                      onClick={forceLoadData}
-                      disabled={isLoadingData}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all disabled:opacity-50"
-                      title="DEBUG: Forzar carga de datos"
-                    >
-                      <svg className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      <span className="text-xs font-medium">
-                        {isLoadingData ? 'Cargando...' : 'CARGAR'}
-                      </span>
-                    </button>
-                    
-                    {/* Botón Editar Excel Original */}
-                    <a
-                      href="https://docs.google.com/spreadsheets/d/1n9wJx1-lUDcoIxV4uo6GkB8eywdH2CsGIUlQTt_hjIc/edit?gid=147076884#gid=147076884"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors group"
-                    >
-                      <svg className="w-4 h-4 text-green-600 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z"/>
-                        <path d="M8 13h2v4H8zm3 0h2v4h-2zm3 0h2v4h-2z"/>
-                      </svg>
-                      <span className="text-xs font-medium text-slate-700">Editar Excel Original</span>
-                      <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
                   </div>
                 </div>
                 
@@ -1779,92 +2203,36 @@ export default function AdminDashboard() {
                         
                         {/* Ancho metros */}
                         <td className="px-3 py-3 border border-slate-200 bg-white text-center">
-                          <div className="text-slate-900 font-semibold">
-                            {(() => {
-                              const anchoValue = variant.ancho || variant.dimensiones;
-                              if (anchoValue && anchoValue !== '') {
-                                // Limpiar el valor de cualquier unidad
-                                let valor = anchoValue.toString();
-                                valor = valor.replace(/mm|cm|m|mts/gi, '').trim();
-                                
-                                // Si el valor es 81, mostrarlo como 0,81
-                                const numValue = parseFloat(valor.replace(',', '.'));
-                                if (numValue === 81 || numValue === 81.0) {
-                                  return '0,81';
-                                }
-                                
-                                return valor;
-                              }
-                              
-                              return 'N/A';
-                            })()} 
-                          </div>
-                          <div className="text-xs text-slate-400">
-                            {(() => {
-                              const anchoValue = variant.ancho || variant.dimensiones;
-                              if (anchoValue && anchoValue !== '') {
-                                let strValue = anchoValue.toString();
-                                strValue = strValue.replace(/mm|cm|m|mts/gi, '').trim();
-                                
-                                // Si es 81 o se convirtió a 0,81, es metros
-                                const numValue = parseFloat(strValue.replace(',', '.'));
-                                if (numValue === 81 || numValue === 81.0 || numValue === 0.81) {
-                                  return 'mts';
-                                }
-                                
-                                // Si tiene coma decimal, es metros
-                                if (strValue.includes(',')) {
-                                  return 'mts';
-                                }
-                                // Si es mayor que 10, son centímetros
-                                if (!isNaN(numValue) && numValue > 10) {
-                                  return 'cm';
-                                }
-                                return 'mts';
-                              }
-                              
-                              // Para productos Ondulados sin datos, mostrar mts
-                              if (variant.codigo && variant.codigo.startsWith('111')) {
-                                return 'mts';
-                              }
-                              
-                              return '';
-                            })()} 
-                          </div>
+                          {(() => {
+                            const dimension = detectarUnidadDimension(variant.ancho);
+                            return (
+                              <>
+                                <div className="text-slate-900 font-semibold">
+                                  {dimension.valor}
+                                </div>
+                                <div className="text-xs text-slate-400">
+                                  {dimension.unidad}
+                                </div>
+                              </>
+                            );
+                          })()}
                         </td>
                         
                         {/* Largo metros */}
                         <td className="px-3 py-3 border border-slate-200 bg-white text-center">
-                          <div className="text-slate-900 font-semibold">
-                            {(() => {
-                              if (!variant.largo) return 'N/A';
-                              
-                              // Limpiar el valor de cualquier unidad
-                              let valor = variant.largo.toString();
-                              valor = valor.replace(/mm|cm|m|mts/gi, '').trim();
-                              return valor;
-                            })()} 
-                          </div>
-                          <div className="text-xs text-slate-400">
-                            {(() => {
-                              if (!variant.largo) return '';
-                              
-                              const strValue = variant.largo.toString();
-                              // Si tiene coma decimal, es metros
-                              if (strValue.includes(',')) {
-                                return 'mts';
-                              }
-                              
-                              // Si es mayor que 100, son centímetros
-                              const numValue = parseFloat(strValue);
-                              if (!isNaN(numValue) && numValue > 100) {
-                                return 'cm';
-                              }
-                              
-                              // Por defecto metros
-                              return 'mts';
-                            })()} 
-                          </div>
+                          {(() => {
+                            const dimension = detectarUnidadDimension(variant.largo);
+                            return (
+                              <>
+                                <div className="text-slate-900 font-semibold">
+                                  {dimension.valor}
+                                </div>
+                                <div className="text-xs text-slate-400">
+                                  {dimension.unidad}
+                                </div>
+                              </>
+                            );
+                          })()}
                         </td>
                         
                         {/* Color */}
@@ -2318,6 +2686,151 @@ export default function AdminDashboard() {
             <div>
               <span className="font-medium text-slate-200">Proveedores</span>
               <p className="text-slate-400 mt-1">Sistema actual: {statsInv.proveedores.join(', ')}. Preparado para múltiples proveedores</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Documentación del Sistema */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mt-8">
+          {/* Header de Documentación */}
+          <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-slate-600 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">Configuración del Sistema</h3>
+                  <p className="text-slate-600 text-sm">Políticas operativas del inventario</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contenido de Documentación */}
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Gestión de Precios */}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-base font-semibold text-slate-800 mb-2">Gestión de Precios</h4>
+                    <ul className="space-y-1 text-slate-600 text-sm">
+                      <li className="flex items-start">
+                        <span className="text-emerald-600 mr-2">•</span>
+                        <span>Precio final para cliente (incluye despacho)</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-emerald-600 mr-2">•</span>
+                        <span>Actualización desde Google Sheets</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mínimos de Compra */}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-base font-semibold text-slate-800 mb-2">Mínimos de Compra</h4>
+                    <ul className="space-y-1 text-slate-600 text-sm">
+                      <li className="flex items-start">
+                        <span className="text-blue-600 mr-2">•</span>
+                        <span>Estándar: 10 unidades</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-blue-600 mr-2">•</span>
+                        <span>Policarbonato Compacto: sin mínimo</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Niveles de Stock */}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-base font-semibold text-slate-800 mb-2">Niveles de Stock</h4>
+                    <ul className="space-y-1 text-slate-600 text-sm">
+                      <li className="flex items-start">
+                        <span className="text-red-600 mr-2">•</span>
+                        <span>Crítico: menos de 20 unidades</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-blue-600 mr-2">•</span>
+                        <span>Medio: 20 a 49 unidades</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-green-600 mr-2">•</span>
+                        <span>Completo: 50+ unidades</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Disponibilidad Web */}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-base font-semibold text-slate-800 mb-2">Disponibilidad Web</h4>
+                    <ul className="space-y-1 text-slate-600 text-sm">
+                      <li className="flex items-start">
+                        <span className="text-violet-600 mr-2">•</span>
+                        <span>Visibles: stock ≥ 10 unidades</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-violet-600 mr-2">•</span>
+                        <span>Ocultos: stock menor a 10</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Resumen del Sistema */}
+            <div className="mt-6 bg-slate-100 rounded-lg p-4 border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                    <span className="text-sm text-slate-700 font-medium">Sistema Activo</span>
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    <span className="font-medium">{statsInv.totalVariants}</span> productos | 
+                    <span className="font-medium text-emerald-600"> {statsInv.visibleProducts}</span> visibles | 
+                    <span className="font-medium text-amber-600"> {statsInv.lowStockCount}</span> stock bajo
+                  </div>
+                </div>
+                <div className="text-xs text-slate-500">
+                  v2.0.0 - ObraExpress
+                </div>
+              </div>
             </div>
           </div>
         </div>

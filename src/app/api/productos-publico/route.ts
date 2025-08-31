@@ -36,6 +36,9 @@ function getDefaultImage(tipo: string, color?: string): string {
 
 export async function GET(request: NextRequest) {
   try {
+    // Filtrar solo los 4 productos específicos permitidos
+    const productosPermitidos = ['Alveolar', 'Ondulado', 'Compacto', 'Perfiles'];
+    
     // Obtener solo productos disponibles en web desde Supabase
     const { data: productos, error } = await supabase
       .from('productos')
@@ -61,6 +64,7 @@ export async function GET(request: NextRequest) {
       .eq('dimensiones_completas', true)
       .eq('cumple_stock_minimo', true) 
       .gte('stock', 10) // Stock mínimo de 10 unidades
+      .in('tipo', productosPermitidos) // Solo permitir los 4 tipos específicos
       .order('pestaña_origen', { ascending: true })
       .order('orden_original', { ascending: true });
 
@@ -74,10 +78,16 @@ export async function GET(request: NextRequest) {
           const fallbackData = await fallbackResponse.json();
           console.log('📄 Usando fallback JSON para productos públicos');
           
-          // Filtrar y limpiar datos del JSON para cliente
+          // Filtrar y limpiar datos del JSON para cliente - Solo 4 productos específicos
+          const productosPermitidos = ['Alveolar', 'Ondulado', 'Compacto', 'Perfiles'];
           const productosPublicos = {};
           Object.entries(fallbackData.productos_por_categoria || {}).forEach(([categoria, productos]) => {
             (productos as any[]).forEach(producto => {
+              // Solo procesar productos permitidos
+              if (!productosPermitidos.includes(producto.tipo)) {
+                return;
+              }
+              
               const variantesPublicas = producto.variantes
                 .filter(v => v.disponible_en_web && v.stock > 0)
                 .map(v => ({

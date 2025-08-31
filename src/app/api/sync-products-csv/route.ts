@@ -7,8 +7,61 @@ import { validarProductoParaWeb, formatearDimension, detectarCambioPrecio } from
 // ID de tu Google Sheet
 const SHEET_ID = '1n9wJx1-lUDcoIxV4uo6GkB8eywdH2CsGIUlQTt_hjIc';
 
+// Función para obtener imagen por defecto basada en tipo y color
+function getDefaultImage(tipo: string, color?: string): string {
+  const imageMap: Record<string, Record<string, string>> = {
+    'Ondulado': {
+      'Clear': '/assets/images/Productos/Policarnato Ondulado/policarbonato_ondulado_opal_perspectiva.webp',
+      'Bronce': '/assets/images/Productos/Policarnato Ondulado/policarbonato_ondulado_opal_perspectiva.webp',
+      'Opal': '/assets/images/Productos/Policarnato Ondulado/policarbonato_ondulado_opal_perspectiva.webp',
+      'default': '/assets/images/Productos/Policarnato Ondulado/policarbonato_ondulado_opal_perspectiva.webp'
+    },
+    'Alveolar': {
+      'Clear': '/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar_clear.webp',
+      'Bronce': '/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar_bronce.webp',
+      'default': '/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar.webp'
+    },
+    'Compacto': {
+      'Clear': '/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto Clear.webp',
+      'Solid': '/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto Solid.webp',
+      'default': '/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto.webp'
+    },
+    'Perfiles': {
+      'default': '/assets/images/Productos/Perfiles/perfil.webp'
+    },
+    'Perfil': {
+      'default': '/assets/images/Productos/Perfiles/perfil.webp'
+    },
+    'Accesorios': {
+      'default': '/assets/images/Productos/Accesorios/accesorio.webp'
+    },
+    'Accesorio': {
+      'default': '/assets/images/Productos/Accesorios/accesorio.webp'
+    }
+  };
+
+  // Buscar por coincidencia exacta primero
+  let tipoKey = Object.keys(imageMap).find(key => 
+    key.toLowerCase() === tipo.toLowerCase()
+  );
+
+  // Si no encuentra exacta, buscar por contiene
+  if (!tipoKey) {
+    tipoKey = Object.keys(imageMap).find(key => 
+      tipo.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(tipo.toLowerCase())
+    );
+  }
+
+  if (!tipoKey) {
+    return '/assets/images/Productos/rollo_policarbonato_2mm_cristal.webp';
+  }
+
+  const colorOptions = imageMap[tipoKey];
+  return colorOptions[color || 'default'] || colorOptions['default'];
+}
+
 // Función para validar si existe imagen de un producto
-function validarImagenProducto(codigo: string, tipo: string, categoria: string): { tieneImagen: boolean, rutaImagen?: string } {
+function validarImagenProducto(codigo: string, tipo: string, categoria: string, color?: string): { tieneImagen: boolean, rutaImagen?: string } {
   const basePath = path.join(process.cwd(), 'public', 'assets', 'images', 'Productos');
   
   // Mapear categorías a carpetas
@@ -18,7 +71,8 @@ function validarImagenProducto(codigo: string, tipo: string, categoria: string):
       'Compacto': 'Policarbonato Compacto', 
       'Ondulado': 'Policarnato Ondulado' // Nota: hay typo en la carpeta existente
     },
-    'Perfiles': 'Perfiles' // Asumir que tendrás esta carpeta
+    'Perfiles': 'Perfiles',
+    'Accesorios': 'Accesorios'
   };
   
   // Obtener ruta de carpeta según categoría y tipo
@@ -28,6 +82,8 @@ function validarImagenProducto(codigo: string, tipo: string, categoria: string):
     carpetaProducto = subcarpetas[tipo] || categoria;
   } else if (categoria === 'Perfiles') {
     carpetaProducto = 'Perfiles';
+  } else if (categoria === 'Accesorios') {
+    carpetaProducto = 'Accesorios';
   } else {
     // Carpeta genérica
     carpetaProducto = categoria;
@@ -68,6 +124,18 @@ function validarImagenProducto(codigo: string, tipo: string, categoria: string):
         };
       }
     }
+  }
+  
+  // Si no encuentra imagen específica, usar imagen por defecto
+  const imagenPorDefecto = getDefaultImage(tipo, color);
+  
+  // Verificar si existe la imagen por defecto físicamente
+  const rutaImagenPorDefecto = path.join(process.cwd(), 'public', imagenPorDefecto);
+  if (fs.existsSync(rutaImagenPorDefecto)) {
+    return {
+      tieneImagen: true,
+      rutaImagen: imagenPorDefecto
+    };
   }
   
   return { tieneImagen: false };
@@ -252,44 +320,29 @@ async function procesarPestaña(sheetName: string) {
       );
     };
 
-    // Mapeo directo basado en la estructura exacta de cada pestaña
-    const indices = sheetName === 'Perfiles' ? {
-      codigo: 0,           // SKU
-      nombre: 1,           // Producto  
-      tipo: 2,             // Tipo
-      espesor: 3,          // Espesor milimetros
-      ancho: 4,            // Ancho metros
-      largo: 5,            // Largo metros
-      color: 6,            // Color
-      uso: 7,              // Uso
-      precioNeto: 8,       // Precio Neto
-      costoProveedor: 9,   // Costo por proveedor
-      ivaIncluido: 10,     // IVA incluido
-      ganancia: 11,        // Ganancia
-      margen: 12,          // Margen
-      stock: 13,           // Stock
-      proveedor: 14,       // Proveedor
-      factorVentaSobreCosto: 15, // Factor de venta sobre costo (NUEVO)
-      dimensiones: -1      // No disponible
-    } : {
-      codigo: 0,           // SKU
-      nombre: 1,           // Nombre  
-      tipo: 2,             // Tipo
-      espesor: 3,          // Espesor milimetros
-      ancho: 4,            // Ancho metros
-      largo: 5,            // Largo metros
-      color: 6,            // Color
-      uso: 7,              // Uso
-      precioNeto: 8,       // Precio Neto
-      costoProveedor: 9,   // Costo por proveedor
-      ivaIncluido: 10,     // IVA incluido
-      ganancia: 11,        // Ganancia
-      margen: 12,          // Margen
-      stock: 13,           // Stock
-      proveedor: 14,       // Proveedor
-      factorVentaSobreCosto: 15, // Factor de venta sobre costo (NUEVO)
-      // Mantener dimensiones para compatibilidad
-      dimensiones: -1
+    // Mapeo directo basado en la estructura exacta del Google Sheets
+    // Columnas del Google Sheets (0-indexed):
+    // A(0):SKU, B(1):Producto, C(2):Tipo, D(3):Espesor mm, E(4):Ancho m, F(5):Largo m, 
+    // G(6):Color, H(7):Uso, I(8):Precio Neto, J(9):Costo proveedor, K(10):IVA incluido,
+    // L(11):Ganancia, M(12):Margen, N(13):Stock, O(14):Proveedor
+    const indices = {
+      codigo: 0,           // A: SKU
+      nombre: 1,           // B: Producto  
+      tipo: 2,             // C: Tipo (Ondulado, Alveolar, etc.)
+      espesor: 3,          // D: Espesor milimetros
+      ancho: 4,            // E: Ancho metros
+      largo: 5,            // F: Largo metros
+      color: 6,            // G: Color
+      uso: 7,              // H: Uso
+      precioNeto: 8,       // I: Precio Neto
+      costoProveedor: 9,   // J: Costo por proveedor
+      ivaIncluido: 10,     // K: IVA incluido
+      ganancia: 11,        // L: Ganancia
+      margen: 12,          // M: Margen
+      stock: 13,           // N: Stock
+      proveedor: 14,       // O: Proveedor
+      factorVentaSobreCosto: 15, // P: Factor de venta sobre costo (si existe)
+      dimensiones: -1      // No existe como columna separada
     };
 
     console.log(`🔍 Índices encontrados en ${sheetName}:`, indices);
@@ -298,11 +351,18 @@ async function procesarPestaña(sheetName: string) {
     const variantes = dataRows.map((row, index) => {
       const codigo = row[indices.codigo] || `${sheetName}-${index}`;
       const nombre = row[indices.nombre] || 'Sin nombre';
-      const categoriaOriginal = row[2]; // Columna "Categoria"
+      const categoriaOriginal = row[indices.tipo] || row[2] || ''; // Usar índice tipo correctamente
       
-      // Log para diagnóstico de categorías
-      if (index < 3) { // Solo los primeros 3 productos
-        console.log(`📊 [${sheetName}] Producto ${index}: SKU=${codigo}, Categoria=${categoriaOriginal}, Row[2]=${row[2]}`);
+      // Log detallado para diagnóstico
+      if (index < 5) { // Primeros 5 productos para debug
+        console.log(`📊 [${sheetName}] Producto ${index}:`, {
+          SKU: codigo,
+          Tipo: categoriaOriginal || 'SIN TIPO',
+          TipoRaw: row[2],
+          Ancho: row[indices.ancho] || 'N/A',
+          Largo: row[indices.largo] || 'N/A',
+          EspesorRaw: row[indices.espesor] || 'N/A'
+        });
       }
       
       // Parsear números con formato chileno: "$7.523" = 7523 pesos
@@ -367,12 +427,63 @@ async function procesarPestaña(sheetName: string) {
       const proveedorReal = row[indices.proveedor] && row.length > indices.proveedor ? 
         row[indices.proveedor] || 'Leker' : 'Leker';
       
-      // REGLAS DE NEGOCIO PARA MOSTRAR EN WEB
-      const tieneSkuValido = codigo && codigo !== `${sheetName}-` && !codigo.toLowerCase().includes('falso') && !codigo.toLowerCase().includes('test') && !codigo.toLowerCase().includes('prueba');
+      // REGLAS DE NEGOCIO PARA MOSTRAR EN WEB - VALIDACIÓN ESTRICTA DE SKU
+      const esSkuValido = (sku: string): boolean => {
+        if (!sku || sku.trim() === '') return false;
+        
+        const skuLimpio = sku.toLowerCase().trim();
+        
+        // Rechazar códigos que no son SKUs reales
+        const textosInvalidos = [
+          'falso', 'test', 'prueba', 'ejemplo', 'sample',
+          'aplicación típica', 'aplicacion tipica', 'típica', 'tipica',
+          'descripción', 'descripcion', 'detalle', 'información', 'informacion',
+          'uso típico', 'uso tipico', 'usos', 'características', 'caracteristicas',
+          'especificaciones', 'especificacion', 'notas', 'observaciones',
+          'medidas típicas', 'medidas tipicas', 'dimensiones típicas',
+          'colores disponibles', 'colores', 'acabados', 'terminaciones',
+          'instalación', 'instalacion', 'montaje', 'aplicaciones',
+          'ventajas', 'beneficios', 'propiedades', 'garantía', 'garantia'
+        ];
+        
+        // Si contiene cualquier texto inválido, rechazar
+        for (const textoInvalido of textosInvalidos) {
+          if (skuLimpio.includes(textoInvalido)) {
+            return false;
+          }
+        }
+        
+        // Rechazar si es igual al nombre de la pestaña
+        if (skuLimpio === sheetName.toLowerCase()) {
+          return false;
+        }
+        
+        // Rechazar códigos que son solo el prefijo de la pestaña
+        if (sku === `${sheetName}-` || sku === `${sheetName}_` || sku === sheetName) {
+          return false;
+        }
+        
+        // Un SKU válido debe tener al menos 3 caracteres y contener números o letras en mayúsculas
+        if (sku.length < 3) return false;
+        
+        // Debe contener al menos un número o una letra mayúscula (patrón típico de SKU)
+        const tieneNumeroOLetraMayuscula = /[0-9A-Z]/.test(sku);
+        if (!tieneNumeroOLetraMayuscula) return false;
+        
+        return true;
+      };
+      
+      const tieneSkuValido = esSkuValido(codigo);
+      
+      // Log de productos rechazados por SKU inválido para debugging
+      if (!tieneSkuValido) {
+        console.log(`❌ SKU rechazado: "${codigo}" en pestaña "${sheetName}" - No es un código válido`);
+      }
+      
       const tieneStockMinimo = stock >= 10; // Stock mínimo 10 unidades para mostrar en web (9 o menos se oculta automáticamente)
       
       // Validar imagen del producto
-      const validacionImagen = validarImagenProducto(codigo, row[indices.tipo] || sheetName, obtenerNombreCategoria(sheetName));
+      const validacionImagen = validarImagenProducto(codigo, row[indices.tipo] || sheetName, obtenerNombreCategoria(sheetName), row[indices.color]);
       const tieneImagen = validacionImagen.tieneImagen;
       
       // IMPORTANTE: Con stock < 10 el producto se oculta automáticamente
@@ -380,10 +491,9 @@ async function procesarPestaña(sheetName: string) {
       
       // Obtener y parsear medidas con formato chileno (comas como decimales)
       const espesorRaw = row[indices.espesor] || '';
-      const anchoRaw = indices.ancho !== -1 ? row[indices.ancho] || '' : 
-                       (indices.dimensiones !== -1 ? parseFloat(row[indices.dimensiones])?.toFixed(2) || '' : '');
-      const largoRaw = indices.largo !== -1 ? row[indices.largo] || '' : '';
-      const dimensiones = indices.dimensiones !== -1 ? row[indices.dimensiones] || '' : '';
+      const anchoRaw = row[indices.ancho] || ''; // Columna E del Google Sheets
+      const largoRaw = row[indices.largo] || '';  // Columna F del Google Sheets
+      const dimensiones = anchoRaw; // Usar ancho como dimensiones para compatibilidad
 
       // Función para parsear números con comas decimales (formato chileno)
       const parsearDecimal = (valor, tipo = '') => {
@@ -459,16 +569,17 @@ async function procesarPestaña(sheetName: string) {
           : null
       };
     }).filter(v => {
-      const isValidProduct = v.codigo && v.codigo !== `${sheetName}-` && 
-                           (v.precio_neto > 0 || v.costo_proveedor > 0);
+      // Validación estricta: Solo productos con SKU válido y datos económicos válidos
+      const tieneSkuReal = v.tiene_sku_valido && v.codigo && v.codigo.length >= 3;
+      const tieneDatosEconomicos = (v.precio_neto > 0 || v.costo_proveedor > 0);
+      const isValidProduct = tieneSkuReal && tieneDatosEconomicos;
       
       if (!isValidProduct) {
-        console.log(`⚠️ Producto filtrado de ${sheetName}:`, {
-          codigo: v.codigo, 
-          nombre: v.nombre, 
-          precio_neto: v.precio_neto, 
-          costo_proveedor: v.costo_proveedor
-        });
+        const motivos = [];
+        if (!tieneSkuReal) motivos.push('SKU inválido');
+        if (!tieneDatosEconomicos) motivos.push('Sin datos de precio/costo');
+        
+        console.log(`🗑️ Producto excluido de ${sheetName}: "${v.codigo}" - ${motivos.join(', ')}`);
       }
       
       return isValidProduct;
@@ -491,13 +602,18 @@ export async function POST(request: NextRequest) {
     const pestañasDetectadas = await obtenerNombresPestañas();
     console.log(`📋 Total pestañas encontradas: ${pestañasDetectadas.length}`, pestañasDetectadas);
     
-    // 🎯 FILTRO DE NEGOCIO: Solo procesar Policarbonato y Perfiles
-    const pestañasPermitidas = ['Sheet1', 'Hoja1', 'Policarbonato', 'Policarbonatos', 'Perfiles', 'Perfil', 'Profile', 'Profiles'];
+    // 🎯 FILTRO DE NEGOCIO: Solo procesar Policarbonato, Perfiles y Accesorios (pestañas completas)
+    const pestañasPermitidas = [
+      'Sheet1', 'Hoja1', 
+      'Policarbonato', 'Policarbonatos', 
+      'Perfiles', 'Perfil', 'Profile', 'Profiles',
+      'Accesorios', 'Accesorio', 'Accessories', 'Accessory'
+    ];
     const pestañasAProcessar = pestañasDetectadas.filter(pestaña => 
       pestañasPermitidas.includes(pestaña)
     );
     
-    console.log(`🎯 Pestañas filtradas para web (solo Policarbonato y Perfiles): ${pestañasAProcessar.length}`, pestañasAProcessar);
+    console.log(`🎯 Pestañas filtradas para web (Policarbonato, Perfiles, Accesorios): ${pestañasAProcessar.length}`, pestañasAProcessar);
     console.log(`❌ Pestañas excluidas: ${pestañasDetectadas.length - pestañasAProcessar.length}`, 
       pestañasDetectadas.filter(p => !pestañasPermitidas.includes(p))
     );
@@ -683,7 +799,73 @@ export async function POST(request: NextRequest) {
       try {
         console.log('🔄 Sincronizando con Supabase...');
         
-        // Obtener precios anteriores desde Supabase para detectar cambios
+        // PASO 1: Limpiar productos obsoletos con SKUs inválidos
+        console.log('🧹 Limpiando productos con SKUs inválidos de sincronizaciones anteriores...');
+        const textosInvalidosParaDb = [
+          'aplicación típica', 'aplicacion tipica', 'típica', 'tipica',
+          'descripción', 'descripcion', 'detalle', 'información', 'informacion',
+          'uso típico', 'uso tipico', 'usos', 'características', 'caracteristicas',
+          'especificaciones', 'especificacion', 'notas', 'observaciones',
+          'medidas típicas', 'medidas tipicas', 'dimensiones típicas',
+          'colores disponibles', 'colores', 'acabados', 'terminaciones',
+          'instalación', 'instalacion', 'montaje', 'aplicaciones',
+          'ventajas', 'beneficios', 'propiedades', 'garantía', 'garantia'
+        ];
+        
+        // Construir condiciones OR para cada texto inválido
+        let deleteConditions = textosInvalidosParaDb.map(texto => 
+          `codigo.ilike.%${texto}%`
+        ).join(',');
+        
+        // Obtener productos actuales para identificar cuáles eliminar
+        try {
+          // Obtener todos los productos actuales
+          const { data: productosActuales, error: getError } = await supabaseAdmin
+            .from('productos')
+            .select('codigo, nombre');
+          
+          if (getError) {
+            console.warn('⚠️ Error obteniendo productos actuales:', getError.message);
+          } else if (productosActuales) {
+            // Filtrar productos con SKUs inválidos
+            const skusAEliminar = productosActuales.filter(p => {
+              const codigo = (p.codigo || '').toLowerCase();
+              
+              // Verificar si contiene textos inválidos
+              const contieneTextoInvalido = textosInvalidosParaDb.some(texto => 
+                codigo.includes(texto.toLowerCase())
+              );
+              
+              // Verificar si es muy corto o no tiene patrón de SKU
+              const esMuyCorto = codigo.length < 3;
+              const noTienePatronSku = !/[0-9A-Z]/.test(p.codigo || '');
+              
+              return contieneTextoInvalido || esMuyCorto || noTienePatronSku;
+            }).map(p => p.codigo);
+            
+            if (skusAEliminar.length > 0) {
+              console.log(`🗑️ Eliminando ${skusAEliminar.length} productos con SKUs inválidos:`, skusAEliminar);
+              
+              // Eliminar productos identificados
+              const { error: deleteError } = await supabaseAdmin
+                .from('productos')
+                .delete()
+                .in('codigo', skusAEliminar);
+              
+              if (deleteError) {
+                console.warn('⚠️ Error eliminando productos inválidos:', deleteError.message);
+              } else {
+                console.log(`✅ ${skusAEliminar.length} productos con SKUs inválidos eliminados correctamente`);
+              }
+            } else {
+              console.log('✅ No se encontraron productos con SKUs inválidos para eliminar');
+            }
+          }
+        } catch (cleanError) {
+          console.warn('⚠️ Error en limpieza automática:', cleanError.message);
+        }
+        
+        // PASO 2: Obtener precios anteriores desde Supabase para detectar cambios
         console.log('🔍 Obteniendo precios anteriores para detección de cambios...');
         const { data: preciosAnteriores, error: preciosError } = await supabaseAdmin
           .from('productos')
