@@ -1094,11 +1094,12 @@ export default function AdminDashboard() {
 
     const allVariantesInv = processedProducts.flatMap((p: any) => 
       p.variantes.map((v: any) => {
+        // Usar precios que vienen del API si existen, sino calcular
         const precioNeto = v.precio_neto || 0;
-        const costoProveedor = v.costo_proveedor || calcularCostoProveedor(precioNeto);
-        const precioConIva = Math.round(precioNeto * 1.19);
-        const ganancia = precioNeto - costoProveedor;
-        const margenGanancia = precioNeto > 0 ? `${Math.round((ganancia / precioNeto) * 100)}%` : '0%';
+        const costoProveedor = v.costo_proveedor || (precioNeto > 0 ? calcularCostoProveedor(precioNeto) : 0);
+        const precioConIva = v.precio_con_iva || (precioNeto > 0 ? Math.round(precioNeto * 1.19) : 0);
+        const ganancia = v.ganancia || (precioNeto > 0 && costoProveedor > 0 ? precioNeto - costoProveedor : 0);
+        const margenGanancia = v.margen_ganancia || (precioNeto > 0 && ganancia > 0 ? `${Math.round((ganancia / precioNeto) * 100)}%` : '0%');
         
         return {
           ...v,
@@ -1106,7 +1107,9 @@ export default function AdminDashboard() {
           productoNombre: p.nombre,
           tipo: v.tipo || p.tipo || 'N/A', // Tipo ya viene de la variante
           ancho: v.ancho || 'N/A', // Ancho ya viene de la variante
+          largo: v.largo || 'N/A', // Largo ya viene de la variante
           costo_proveedor: costoProveedor,
+          precio_neto: precioNeto,
           precio_con_iva: precioConIva,
           ganancia: ganancia,
           margen_ganancia: margenGanancia

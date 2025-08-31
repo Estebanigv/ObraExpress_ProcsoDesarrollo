@@ -56,6 +56,19 @@ export async function GET() {
             productosPorCategoria[categoria].push(productoExistente);
           }
           
+          // Calcular precios correctamente si vienen nulos o ceros
+          const costoProveedor = producto.costo_proveedor || 0;
+          const precioNeto = producto.precio_neto || 0;
+          const precioConIvaDb = producto.precio_con_iva || 0;
+          
+          // Si precio_con_iva es 0 pero precio_neto existe, calcularlo
+          const precioConIva = precioConIvaDb > 0 ? precioConIvaDb : 
+            (precioNeto > 0 ? Math.round(precioNeto * 1.19) : 0);
+          
+          const ganancia = precioNeto > 0 && costoProveedor > 0 ? precioNeto - costoProveedor : 0;
+          const margenGanancia = precioNeto > 0 && ganancia > 0 ? 
+            `${Math.round((ganancia / precioNeto) * 100)}%` : '0%';
+
           // Agregar variante con TODOS los campos necesarios
           productoExistente.variantes.push({
             codigo: producto.codigo,
@@ -67,11 +80,11 @@ export async function GET() {
             largo: producto.largo || '', // ✅ AGREGAR LARGO INDIVIDUAL
             color: producto.color || '',
             dimensiones: `${producto.ancho || ''} x ${producto.largo || ''}`.trim() || '',
-            costo_proveedor: producto.costo_proveedor || 0,
-            precio_neto: producto.precio_neto || 0,
-            precio_con_iva: producto.precio_con_iva || 0,
-            ganancia: producto.ganancia || 0,
-            margen_ganancia: producto.margen_ganancia || '0%',
+            costo_proveedor: costoProveedor,
+            precio_neto: precioNeto,
+            precio_con_iva: precioConIva,
+            ganancia: ganancia,
+            margen_ganancia: margenGanancia,
             stock: producto.stock || 0,
             proveedor: producto.proveedor || '',
             disponible_en_web: producto.disponible_en_web || false,
