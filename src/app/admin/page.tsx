@@ -46,6 +46,7 @@ export default function AdminDashboard() {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [autoSyncInterval, setAutoSyncInterval] = useState(15); // Minutos
   const autoSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoadingRef = useRef(false);
   
   // Estados para filtros avanzados del inventario
   const [inventoryView, setInventoryView] = useState('summary'); // 'summary', 'detailed', 'grouped'
@@ -373,7 +374,14 @@ export default function AdminDashboard() {
 
   // Cargar datos de productos desde SUPABASE - MEJORADO con cache y retry logic
   const forceLoadData = async (forceRefresh = false) => {
+    // Prevenir ejecuciones múltiples simultáneas
+    if (isLoadingRef.current) {
+      console.log('⚠️ Ya hay una carga en progreso, cancelando...');
+      return;
+    }
+    
     try {
+      isLoadingRef.current = true;
       setIsLoadingData(true);
       console.log('🔍 Cargando productos...', { forceRefresh });
       
@@ -426,6 +434,7 @@ export default function AdminDashboard() {
       loadFromCache();
     } finally {
       setIsLoadingData(false);
+      isLoadingRef.current = false;
     }
   };
 
@@ -465,74 +474,56 @@ export default function AdminDashboard() {
   useEffect(() => {
     const loadProductDataFromSupabase = async () => {
       console.log('🔍 UseEffect ejecutado:', { activeTab, hasProductosData: !!productosData, isLoadingData });
+      
       // Solo cargar si estamos en la pestaña de inventario y no estamos cargando
-      if (activeTab !== 'inventario' || isLoadingData) {
-        console.log('⚠️ Carga cancelada:', { activeTab, isLoadingData });
+      if (activeTab !== 'inventario' || isLoadingData || isLoadingRef.current) {
+        console.log('⚠️ Carga cancelada:', { activeTab, isLoadingData, isLoadingRefCurrent: isLoadingRef.current });
+        return;
+      }
+
+      // Si ya tenemos datos válidos, no cargar de nuevo
+      if (productosData && productosData.productos_por_categoria && Object.keys(productosData.productos_por_categoria).length > 0) {
+        console.log('✅ productosData ya existe con datos válidos, no es necesario cargar');
         return;
       }
 
       // Si no tenemos datos, intentar cargar desde caché primero
-      if (!productosData) {
-        console.log('📦 productosData es null, intentando cargar desde caché...');
-        const cachedData = localStorage.getItem('obraexpress_admin_productos_cache');
-        if (cachedData) {
-          try {
-            const data = JSON.parse(cachedData);
-            if (data && data.productos_por_categoria && Object.keys(data.productos_por_categoria).length > 0) {
-              setProductosData(data);
-              const cacheTimestamp = localStorage.getItem('obraexpress_admin_productos_timestamp');
-              const cacheAge = cacheTimestamp ? Math.round((Date.now() - parseInt(cacheTimestamp)) / 60000) : '?';
-              console.log('✅ Datos cargados desde caché tras F5:', data.total || 0, 'productos,', cacheAge, 'min');
-              return; // No necesitamos cargar desde el servidor si tenemos datos válidos en caché
-            } else {
-              console.log('⚠️ Caché inválido o vacío');
-            }
-          } catch (e) {
-            console.warn('❌ Error parseando caché:', e);
-            localStorage.removeItem('obraexpress_admin_productos_cache');
-            localStorage.removeItem('obraexpress_admin_productos_timestamp');
-          }
-        } else {
-          console.log('⚠️ No hay datos en caché');
-        }
-        
-        // Si no hay caché válido, cargar desde el servidor
-        console.log('🌐 Cargando desde servidor...');
-        await forceLoadData();
-      } else {
-        console.log('✅ productosData ya existe, no es necesario cargar');
-      }
-    };
-
-    if (isAuthenticated) {
-      loadProductDataFromSupabase();
-    } else {
-      setIsLoadingData(false);
-    }
-  }, [isAuthenticated, activeTab]);
-
-  // UseEffect adicional para manejar cambio a pestaña inventario (incluyendo F5)
-  useEffect(() => {
-    if (activeTab === 'inventario' && isAuthenticated && !productosData && !isLoadingData) {
-      console.log('🔄 Forzando carga de inventario al cambiar a pestaña');
-      // Intentar cargar desde caché inmediatamente
+      console.log('📦 productosData es null o vacío, intentando cargar desde caché...');
       const cachedData = localStorage.getItem('obraexpress_admin_productos_cache');
       if (cachedData) {
         try {
           const data = JSON.parse(cachedData);
           if (data && data.productos_por_categoria && Object.keys(data.productos_por_categoria).length > 0) {
             setProductosData(data);
-            console.log('✅ Datos de inventario restaurados desde caché al cambiar pestaña');
-            return;
+            const cacheTimestamp = localStorage.getItem('obraexpress_admin_productos_timestamp');
+            const cacheAge = cacheTimestamp ? Math.round((Date.now() - parseInt(cacheTimestamp)) / 60000) : '?';
+            console.log('✅ Datos cargados desde caché tras F5:', data.total || 0, 'productos,', cacheAge, 'min');
+            return; // No necesitamos cargar desde el servidor si tenemos datos válidos en caché
+          } else {
+            console.log('⚠️ Caché inválido o vacío');
           }
         } catch (e) {
-          console.warn('❌ Error parseando caché en cambio de pestaña:', e);
+          console.warn('❌ Error parseando caché:', e);
+          localStorage.removeItem('obraexpress_admin_productos_cache');
+          localStorage.removeItem('obraexpress_admin_productos_timestamp');
         }
+      } else {
+        console.log('⚠️ No hay datos en caché');
       }
-      // Si no hay caché, forzar carga desde servidor
-      forceLoadData(false);
+      
+      // Si no hay caché válido, cargar desde el servidor
+      console.log('🌐 Cargando desde servidor...');
+      await forceLoadData();
+    };
+
+    if (isAuthenticated && !isLoadingRef.current) {
+      loadProductDataFromSupabase();
+    } else {
+      setIsLoadingData(false);
     }
-  }, [activeTab]);
+  }, [isAuthenticated, activeTab]);
+
+  // Eliminado useEffect redundante que causaba loops infinitos
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
