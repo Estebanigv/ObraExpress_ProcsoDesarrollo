@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getVisibleCategories, isCategoryVisible } from '@/config/categories-visibility';
+import { getVisibleCategories, isCategoryVisible, getCategoriesInOrder, getOrderedTypesByCategory } from '@/config/categories-visibility';
 
 export async function GET() {
   try {
@@ -126,15 +126,58 @@ export async function GET() {
           });
         });
 
-        console.log('✅ Datos procesados:', {
-          categorias: Object.keys(productosPorCategoria),
-          totalProductos: Object.values(productosPorCategoria).flat().length,
-          totalVariantes: data.length
+        // Ordenar categorías y tipos según la configuración
+        const categoriasOrdenadas = getCategoriesInOrder();
+        const productosPorCategoriaOrdenados: any = {};
+        
+        // Procesar categorías en el orden correcto
+        categoriasOrdenadas.forEach(categoria => {
+          if (productosPorCategoria[categoria.name] && isCategoryVisible(categoria.name)) {
+            // Ordenar productos dentro de cada categoría por tipo
+            const productosDeCategoria = productosPorCategoria[categoria.name];
+            const tiposOrdenados = getOrderedTypesByCategory(categoria.name);
+            
+            // Agrupar productos por tipo y ordenarlos
+            const productosPorTipo: any = {};
+            productosDeCategoria.forEach((producto: any) => {
+              producto.variantes.forEach((variante: any) => {
+                const tipo = variante.tipo || 'Sin especificar';
+                if (!productosPorTipo[tipo]) {
+                  productosPorTipo[tipo] = [];
+                }
+                productosPorTipo[tipo].push({...producto, variantes: [variante]});
+              });
+            });
+            
+            // Reconstruir productos en orden correcto de tipos
+            const productosOrdenados: any[] = [];
+            tiposOrdenados.forEach(tipo => {
+              if (productosPorTipo[tipo]) {
+                productosOrdenados.push(...productosPorTipo[tipo]);
+              }
+            });
+            
+            // Agregar tipos no especificados al final
+            Object.keys(productosPorTipo).forEach(tipo => {
+              if (!tiposOrdenados.includes(tipo)) {
+                productosOrdenados.push(...productosPorTipo[tipo]);
+              }
+            });
+            
+            productosPorCategoriaOrdenados[categoria.name] = productosOrdenados;
+          }
+        });
+
+        console.log('✅ Datos procesados y ordenados:', {
+          categorias: Object.keys(productosPorCategoriaOrdenados),
+          totalProductos: Object.values(productosPorCategoriaOrdenados).flat().length,
+          totalVariantes: data.length,
+          ordenCategorias: categoriasOrdenadas.map(c => c.name)
         });
 
         return NextResponse.json({
           success: true,
-          productos_por_categoria: productosPorCategoria,
+          productos_por_categoria: productosPorCategoriaOrdenados,
           total: data.length
         });
       } else {
