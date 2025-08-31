@@ -144,15 +144,12 @@ function validarImagenProducto(codigo: string, tipo: string, categoria: string, 
 // Función para mapear nombres de pestañas a categorías amigables
 function obtenerNombreCategoria(sheetName: string): string {
   const mapeoNombres: Record<string, string> = {
-    'Sheet1': 'Policarbonato',
-    'Hoja1': 'Policarbonato', 
     'Policarbonato': 'Policarbonato',
-    'Policarbonatos': 'Policarbonato',
-    'Perfiles': 'Perfiles',
-    'Perfil': 'Perfiles',
-    'Profile': 'Perfiles', 
-    'Profiles': 'Perfiles',
-    'Perfiles Alveolar': 'Perfiles',
+    'Perfiles Alveolar': 'Perfiles Alveolar',
+    'Accesorios': 'Accesorios',
+    'Rollos': 'Rollos',
+    'Industriales': 'Industriales', 
+    'Accesorios Industriales': 'Accesorios Industriales',
     'Kits': 'Kits',
     'Kit': 'Kits',
     'Herramientas': 'Herramientas',
@@ -208,9 +205,12 @@ async function detectarPestañasPorFuerzaBruta() {
     'Herramientas', 'Herramienta', 'Tools',
     'Accesorios', 'Accessorios',
     'Productos', 'Products',
-    'Inventario', 'Inventory',
-    'Materiales', 'Materials',
-    'Perfiles', 'Perfil', 'Profile', 'Profiles', 'Perfiles Alveolar'
+    'Policarbonato',
+    'Perfiles Alveolar',
+    'Accesorios',
+    'Rollos', 
+    'Industriales',
+    'Accesorios Industriales'
   ];
   
   const pestañasExistentes = [];
@@ -603,12 +603,14 @@ export async function POST(request: NextRequest) {
     const pestañasDetectadas = await obtenerNombresPestañas();
     console.log(`📋 Total pestañas encontradas: ${pestañasDetectadas.length}`, pestañasDetectadas);
     
-    // 🎯 FILTRO DE NEGOCIO: Solo procesar Policarbonato, Perfiles y Accesorios (pestañas completas)
+    // 🎯 FILTRO DE NEGOCIO: Procesar todas las pestañas reales
     const pestañasPermitidas = [
-      'Sheet1', 'Hoja1', 
-      'Policarbonato', 'Policarbonatos', 
-      'Perfiles', 'Perfil', 'Profile', 'Profiles', 'Perfiles Alveolar',
-      'Accesorios', 'Accesorio', 'Accessories', 'Accessory'
+      'Policarbonato',
+      'Perfiles Alveolar', 
+      'Accesorios',
+      'Rollos',
+      'Industriales',
+      'Accesorios Industriales'
     ];
     const pestañasAProcessar = pestañasDetectadas.filter(pestaña => 
       pestañasPermitidas.includes(pestaña)

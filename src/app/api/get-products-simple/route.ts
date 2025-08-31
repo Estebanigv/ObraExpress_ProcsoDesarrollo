@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getVisibleCategories, isCategoryVisible } from '@/config/categories-visibility';
 
 export async function GET() {
   try {
@@ -62,6 +63,11 @@ export async function GET() {
         
         data.forEach((producto) => {
           const categoria = producto.categoria || 'Policarbonato';
+          
+          // Filtrar solo categorías visibles
+          if (!isCategoryVisible(categoria)) {
+            return; // Saltar productos de categorías ocultas
+          }
           
           if (!productosPorCategoria[categoria]) {
             productosPorCategoria[categoria] = [];
