@@ -15,6 +15,7 @@ import InventoryOptimizer from '@/modules/admin/components/InventoryOptimizer';
 import { useAI } from '@/modules/admin/hooks/useAI';
 import type { AdminContext } from '@/modules/admin/types/ai.types';
 import InfoTooltip from '@/components/InfoTooltip';
+import CategoryVisibilityPanel from '@/components/admin/CategoryVisibilityPanel';
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -4079,7 +4080,15 @@ export default function AdminDashboard() {
         )}
 
         {/* Inventario Tab - VISTA ESCALABLE PARA MÚLTIPLES PROVEEDORES */}
-        {activeTab === 'inventario' && <ProfessionalInventoryView />}
+        {activeTab === 'inventario' && (
+          <div className="space-y-6">
+            {/* Panel de gestión de visibilidad */}
+            <CategoryVisibilityPanel />
+            
+            {/* Vista principal del inventario */}
+            <ProfessionalInventoryView />
+          </div>
+        )}
         
         {/* Órdenes Tab - GESTIÓN COMPLETA */}
         {activeTab === 'ordenes' && (
