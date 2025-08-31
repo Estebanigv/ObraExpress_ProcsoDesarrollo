@@ -5,29 +5,56 @@ export async function GET() {
   try {
     console.log('🔍 GET /api/get-products-simple - Iniciando...');
     
-    // SIEMPRE intentar obtener de Supabase primero
-    if (supabaseAdmin) {
-      console.log('🔗 Consultando Supabase...');
-      const { data, error } = await supabaseAdmin
-        .from('productos')
-        .select('*')
-        .order('codigo');
-
-      console.log('📊 Resultado Supabase:', { 
-        error: error?.message || 'sin error', 
-        dataLength: data?.length || 0,
-        hasData: !!data 
-      });
-
-      if (error) {
-        console.error('❌ Error Supabase:', error);
-        return NextResponse.json({
-          success: false,
-          productos_por_categoria: {},
-          total: 0,
-          error: 'Error de base de datos: ' + error.message
-        });
+    // Verificar configuración primero
+    if (!supabaseAdmin) {
+      console.error('❌ supabaseAdmin no está configurado');
+      
+      // En producción, intentar crear el cliente dinámicamente
+      if (process.env.NODE_ENV === 'production') {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        
+        if (!url || !serviceKey) {
+          return NextResponse.json({
+            success: false,
+            productos_por_categoria: {},
+            total: 0,
+            error: 'Variables de entorno de Supabase no configuradas en producción'
+          });
+        }
       }
+      
+      return NextResponse.json({
+        success: false,
+        productos_por_categoria: {},
+        total: 0,
+        error: 'Cliente de Supabase no disponible'
+      });
+    }
+    
+    // SIEMPRE intentar obtener de Supabase primero
+    console.log('🔗 Consultando Supabase...');
+    const { data, error } = await supabaseAdmin
+      .from('productos')
+      .select('*')
+      .order('codigo');
+
+    console.log('📊 Resultado Supabase:', { 
+      error: error?.message || 'sin error', 
+      dataLength: data?.length || 0,
+      hasData: !!data 
+    });
+
+    if (error) {
+      console.error('❌ Error Supabase:', error);
+      return NextResponse.json({
+        success: false,
+        productos_por_categoria: {},
+        total: 0,
+        error: 'Error de base de datos: ' + error.message,
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    }
 
       if (data && data.length > 0) {
         // Agrupar por categoría

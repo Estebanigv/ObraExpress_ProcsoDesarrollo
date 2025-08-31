@@ -32,6 +32,20 @@ if (isSupabaseConfigured()) {
   } catch (error) {
     console.warn('Using fallback Supabase configuration for build')
   }
+} else {
+  // En producción, intentar obtener directamente las variables
+  if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+    const prodUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const prodAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const prodServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    if (prodUrl && prodAnonKey) {
+      supabaseUrl = prodUrl
+      supabaseAnonKey = prodAnonKey
+      supabaseServiceKey = prodServiceKey
+      console.log('✅ Using production Supabase configuration')
+    }
+  }
 }
 
 // Cliente público con validación
