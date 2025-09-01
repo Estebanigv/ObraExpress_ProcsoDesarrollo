@@ -241,33 +241,51 @@ async function detectarPestañasPorFuerzaBruta() {
   return pestañasExistentes.length > 0 ? pestañasExistentes : ['Sheet1'];
 }
 
-// Función para parsear CSV correctamente
+// Función mejorada para parsear CSV con comas decimales chilenas
 function parsearCSV(csvData: string) {
   return csvData.trim().split('\n').map(row => {
     const cells = [];
     let currentCell = '';
     let inQuotes = false;
+    let i = 0;
     
-    for (let i = 0; i < row.length; i++) {
+    while (i < row.length) {
       const char = row[i];
+      const nextChar = i < row.length - 1 ? row[i + 1] : null;
+      const prevChar = i > 0 ? row[i - 1] : null;
       
-      if (char === '"' && (i === 0 || row[i-1] === ',')) {
-        inQuotes = true;
-      } else if (char === '"' && (i === row.length - 1 || row[i+1] === ',')) {
-        inQuotes = false;
-      } else if (char === ',' && !inQuotes) {
+      if (char === '"') {
+        // Detectar inicio de comillas
+        if (!inQuotes && (prevChar === ',' || prevChar === null)) {
+          inQuotes = true;
+        }
+        // Detectar fin de comillas  
+        else if (inQuotes && (nextChar === ',' || nextChar === null)) {
+          inQuotes = false;
+        }
+        // Comillas dobles dentro del contenido ("")
+        else if (inQuotes && nextChar === '"') {
+          currentCell += '"';
+          i++; // Saltar la siguiente comilla
+        }
+      }
+      // Separador de columnas
+      else if (char === ',' && !inQuotes) {
         cells.push(currentCell.trim());
         currentCell = '';
+        i++;
         continue;
-      } else {
+      }
+      // Contenido normal
+      else {
         currentCell += char;
       }
+      
+      i++;
     }
     
     // Agregar la última celda
-    if (currentCell) {
-      cells.push(currentCell.trim());
-    }
+    cells.push(currentCell.trim());
     
     return cells;
   });
@@ -302,7 +320,21 @@ async function procesarPestaña(sheetName: string) {
 
     console.log(`📋 Datos obtenidos de ${sheetName}, primera línea:`, csvData.split('\n')[0]);
     
-    const rows = parsearCSV(csvData);
+    // Usar parser nativo más robusto para CSV con comas decimales
+    const rows = csvData.trim().split('\n').map(line => {
+      // Usar una expresión regular más robusta para CSV
+      const result = [];
+      const regex = /"([^"]*(?:""[^"]*)*)"|([^,]+)/g;
+      let match;
+      
+      while ((match = regex.exec(line)) !== null) {
+        // Grupo 1: contenido entre comillas, Grupo 2: contenido sin comillas
+        const value = match[1] !== undefined ? match[1].replace(/""/g, '"') : match[2];
+        result.push((value || '').trim());
+      }
+      
+      return result;
+    });
     console.log(`📋 Procesando ${rows.length} filas de ${sheetName}...`);
     
     // Procesar headers y datos
@@ -312,41 +344,109 @@ async function procesarPestaña(sheetName: string) {
     console.log(`📝 Headers de ${sheetName}:`, headers);
     console.log(`📦 Filas de datos válidas en ${sheetName}: ${dataRows.length}`);
 
-    // Buscar índices de columnas
-    const findIndex = (searchTerms: string[]) => {
-      return headers.findIndex(header => 
-        searchTerms.some(term => 
-          header.toLowerCase().includes(term.toLowerCase())
-        )
-      );
+    // MAPEO DINÁMICO UNIVERSAL - Lee los headers exactos de cada pestaña
+    const findIndexExact = (searchTerms: string[]) => {
+      return headers.findIndex(header => {
+        if (!header) return false;
+        const headerNormalized = header.toString().toLowerCase().trim();
+        
+        return searchTerms.some(term => {
+          const termNormalized = term.toLowerCase().trim();
+          // Coincidencia exacta o contenido
+          return headerNormalized === termNormalized || 
+                 headerNormalized.includes(termNormalized) ||
+                 termNormalized.includes(headerNormalized);
+        });
+      });
     };
 
-    // Mapeo directo basado en la estructura exacta del Google Sheets
-    // Columnas del Google Sheets (0-indexed):
-    // A(0):SKU, B(1):Producto, C(2):Tipo, D(3):Espesor mm, E(4):Ancho m, F(5):Largo m, 
-    // G(6):Color, H(7):Uso, I(8):Precio Neto, J(9):Costo proveedor, K(10):IVA incluido,
-    // L(11):Ganancia, M(12):Margen, N(13):Stock, O(14):Proveedor
+    console.log(`🔍 [${sheetName}] Headers detectados:`, headers.map((h, i) => `${i}: "${h}"`));
+    
+    // Mapeo genérico que funciona para cualquier estructura de pestaña
     const indices = {
-      codigo: 0,           // A: SKU
-      nombre: 1,           // B: Producto  
-      tipo: 2,             // C: Tipo (Ondulado, Alveolar, etc.)
-      espesor: 3,          // D: Espesor milimetros
-      ancho: 4,            // E: Ancho metros
-      largo: 5,            // F: Largo metros
-      color: 6,            // G: Color
-      uso: 7,              // H: Uso
-      precioNeto: 8,       // I: Precio Neto
-      costoProveedor: 9,   // J: Costo por proveedor
-      ivaIncluido: 10,     // K: IVA incluido
-      ganancia: 11,        // L: Ganancia
-      margen: 12,          // M: Margen
-      stock: 13,           // N: Stock
-      proveedor: 14,       // O: Proveedor
-      factorVentaSobreCosto: 15, // P: Factor de venta sobre costo (si existe)
-      dimensiones: -1      // No existe como columna separada
+      codigo: findIndexExact(['sku', 'codigo', 'código', 'id', 'code']),
+      nombre: findIndexExact(['producto', 'nombre', 'name', 'description']),
+      tipo: findIndexExact(['tipo', 'type', 'categoria', 'categoría']),
+      espesor: findIndexExact(['espesor', 'grosor', 'milimetros', 'mm', 'thickness']),
+      
+      // CAMPOS ESPECÍFICOS DETECTADOS EN LA IMAGEN
+      ancho: findIndexExact(['ancho metros', 'ancho', 'width', 'metros ancho', 'medida ancho']),
+      largo: findIndexExact(['largo metros', 'largo', 'length', 'longitud', 'metros largo', 'medida largo']),
+      color: findIndexExact(['color', 'colour']),
+      uso: findIndexExact(['uso', 'use', 'aplicacion', 'aplicación', 'descripción uso']),
+      
+      // CAMPOS DE PRECIOS EXACTOS
+      precioNeto: findIndexExact(['precio neto', 'precio_neto', 'precio sin iva', 'neto']),
+      costoProveedor: findIndexExact(['costo por prov', 'costo proveedor', 'costo_proveedor', 'precio_proveedor', 'costo por proveedor']),
+      ivaIncluido: findIndexExact(['iva incluido', 'precio con iva', 'precio_con_iva', 'incluido']),
+      ganancia: findIndexExact(['ganancia', 'profit', 'beneficio']),
+      margen: findIndexExact(['margen', 'margin', '%', 'porcentaje']),
+      stock: findIndexExact(['stock', 'cantidad', 'inventario', 'existencias']),
+      // Búsqueda exacta para proveedor para evitar confusión con "costo por proveedor"
+      proveedor: headers.findIndex(h => h && h.toLowerCase().trim() === 'proveedor'),
+      factorVentaSobreCosto: findIndexExact(['factor', 'factor venta', 'factor_venta', 'multiplicador']),
+      dimensiones: findIndexExact(['dimensiones', 'medidas', 'tamaño', 'size'])
     };
 
-    console.log(`🔍 Índices encontrados en ${sheetName}:`, indices);
+    // POST-PROCESAMIENTO: Verificar campos críticos no encontrados y buscarlos manualmente
+    const camposFaltantes = [];
+    
+    // Detectar campos faltantes críticos
+    Object.entries(indices).forEach(([campo, indice]) => {
+      if (indice === -1) {
+        camposFaltantes.push(campo);
+      }
+    });
+    
+    if (camposFaltantes.length > 0) {
+      console.log(`⚠️ [${sheetName}] Campos no detectados automáticamente:`, camposFaltantes);
+      
+      // Búsqueda manual por posición para campos críticos
+      camposFaltantes.forEach(campo => {
+        switch (campo) {
+          case 'ancho':
+            // Buscar cualquier columna que hable de ancho o metros
+            for (let i = 0; i < headers.length; i++) {
+              const h = (headers[i] || '').toLowerCase();
+              if (h.includes('ancho') || (h.includes('metros') && !h.includes('largo'))) {
+                indices.ancho = i;
+                console.log(`🔧 [${sheetName}] Ancho manual en índice ${i}: "${headers[i]}"`);
+                break;
+              }
+            }
+            break;
+            
+          case 'largo':
+            for (let i = 0; i < headers.length; i++) {
+              const h = (headers[i] || '').toLowerCase();
+              if (h.includes('largo') || (h.includes('metros') && h.includes('largo'))) {
+                indices.largo = i;
+                console.log(`🔧 [${sheetName}] Largo manual en índice ${i}: "${headers[i]}"`);
+                break;
+              }
+            }
+            break;
+            
+          case 'costoProveedor':
+            // Buscar "costo por prov" o similar
+            for (let i = 0; i < headers.length; i++) {
+              const h = (headers[i] || '').toLowerCase();
+              if (h.includes('costo') && (h.includes('prov') || h.includes('proveedor'))) {
+                indices.costoProveedor = i;
+                console.log(`🔧 [${sheetName}] Costo proveedor manual en índice ${i}: "${headers[i]}"`);
+                break;
+              }
+            }
+            break;
+        }
+      });
+    }
+    
+    console.log(`🔍 [${sheetName}] Índices finales mapeados:`, 
+      Object.entries(indices)
+        .filter(([_, idx]) => idx !== -1)
+        .map(([campo, idx]) => `${campo}=${idx}("${headers[idx]}")`)
+    );
 
     // Convertir datos a formato JSON con precios corregidos
     const variantes = dataRows.map((row, index) => {
@@ -424,9 +524,7 @@ async function procesarPestaña(sheetName: string) {
         });
       }
       
-      // Obtener proveedor de la columna correcta (posición 14)
-      const proveedorReal = row[indices.proveedor] && row.length > indices.proveedor ? 
-        row[indices.proveedor] || 'Leker' : 'Leker';
+      // El proveedor se obtiene dinámicamente en la sección de corrección de campos arriba
       
       // REGLAS DE NEGOCIO PARA MOSTRAR EN WEB - VALIDACIÓN ESTRICTA DE SKU
       const esSkuValido = (sku: string): boolean => {
@@ -464,6 +562,12 @@ async function procesarPestaña(sheetName: string) {
           return false;
         }
         
+        // VALIDACIÓN ESPECIAL PARA PERFILES ALVEOLAR
+        if (sheetName === 'Perfiles Alveolar') {
+          // Los SKUs de Perfiles Alveolar son numéricos de 8-9 dígitos
+          return /^\d{8,9}$/.test(sku);
+        }
+        
         // Un SKU válido debe tener al menos 3 caracteres y contener números o letras en mayúsculas
         if (sku.length < 3) return false;
         
@@ -483,18 +587,34 @@ async function procesarPestaña(sheetName: string) {
       
       const tieneStockMinimo = stock >= 10; // Stock mínimo 10 unidades para mostrar en web (9 o menos se oculta automáticamente)
       
-      // Validar imagen del producto
-      const validacionImagen = validarImagenProducto(codigo, row[indices.tipo] || sheetName, obtenerNombreCategoria(sheetName), row[indices.color]);
+      // Validar imagen del producto usando los campos corregidos
+      const validacionImagen = validarImagenProducto(codigo, row[indices.tipo] || sheetName, obtenerNombreCategoria(sheetName), colorRaw);
       const tieneImagen = validacionImagen.tieneImagen;
       
       // IMPORTANTE: Con stock < 10 el producto se oculta automáticamente
       const disponibleEnWeb = tieneSkuValido && tieneStockMinimo && tieneImagen;
       
-      // Obtener y parsear medidas con formato chileno (comas como decimales)
-      const espesorRaw = row[indices.espesor] || '';
-      const anchoRaw = row[indices.ancho] || ''; // Columna E del Google Sheets
-      const largoRaw = row[indices.largo] || '';  // Columna F del Google Sheets
-      const dimensiones = anchoRaw; // Usar ancho como dimensiones para compatibilidad
+      // EXTRACCIÓN DIRECTA DE DATOS USANDO ÍNDICES DINÁMICOS
+      // Obtener datos directamente de los índices detectados (sin corrección manual)
+      const espesorRaw = indices.espesor !== -1 ? (row[indices.espesor] || '') : '';
+      const anchoRaw = indices.ancho !== -1 ? (row[indices.ancho] || '') : ''; 
+      const largoRaw = indices.largo !== -1 ? (row[indices.largo] || '') : '';
+      const colorRaw = indices.color !== -1 ? (row[indices.color] || '') : 'Sin especificar';
+      const usoRaw = indices.uso !== -1 ? (row[indices.uso] || '') : 'Uso general';
+      const proveedorRaw = indices.proveedor !== -1 ? (row[indices.proveedor] || 'Leker') : 'Leker';
+      
+      // Debug para primeros productos
+      if (index < 3) {
+        console.log(`📊 [${sheetName}] Producto ${index} - ${codigo}:`);
+        console.log(`  • Ancho (${indices.ancho}): "${anchoRaw}"`);
+        console.log(`  • Largo (${indices.largo}): "${largoRaw}"`);
+        console.log(`  • Color (${indices.color}): "${colorRaw}"`);
+        console.log(`  • Uso (${indices.uso}): "${usoRaw}"`);
+        console.log(`  • Proveedor (${indices.proveedor}): "${proveedorRaw}"`);
+      }
+      
+      // Usar ancho como dimensiones para compatibilidad, o crear dimensiones combinadas
+      const dimensiones = anchoRaw && largoRaw ? `${anchoRaw}x${largoRaw}` : (anchoRaw || largoRaw || '');
 
       // Función para parsear números con comas decimales (formato chileno)
       const parsearDecimal = (valor, tipo = '') => {
@@ -534,8 +654,8 @@ async function procesarPestaña(sheetName: string) {
       return {
         codigo,
         nombre: nombre, // Producto desde Excel
-        descripcion: `Policarbonato ${categoriaOriginal || 'Standard'}`,
-        categoria: 'Policarbonato', // Categoría principal
+        descripcion: `${obtenerNombreCategoria(sheetName)} ${categoriaOriginal || 'Standard'}`,
+        categoria: obtenerNombreCategoria(sheetName), // Categoría principal basada en la pestaña
         tipo: categoriaOriginal || 'Standard', // Tipo específico: Ondulado, Alveolar, Compacto
         costo_proveedor: costoProveedor,
         precio_neto: Math.round(precioVenta),
@@ -549,12 +669,12 @@ async function procesarPestaña(sheetName: string) {
         largo: largoParsed,
         // Mantener dimensiones para compatibilidad
         dimensiones: dimensiones,
-        color: row[indices.color] || 'Sin especificar',
-        uso: row[indices.uso] || "Uso general",
+        color: colorRaw || 'Sin especificar',
+        uso: usoRaw || "Uso general",
         stock: stock,
         uv_protection: true,
         garantia: "10 años",
-        proveedor: proveedorReal,
+        proveedor: proveedorRaw || 'Leker',
         pestaña_origen: sheetName, // NUEVO: rastrear de qué pestaña viene
         orden_original: index, // NUEVO: preservar orden del Google Sheets
         // NUEVOS CAMPOS PARA REGLAS DE NEGOCIO
@@ -612,9 +732,47 @@ export async function POST(request: NextRequest) {
       'Industriales',
       'Accesorios Industriales'
     ];
-    const pestañasAProcessar = pestañasDetectadas.filter(pestaña => 
-      pestañasPermitidas.includes(pestaña)
-    );
+    console.log('📝 Pestañas detectadas detalladamente:', pestañasDetectadas.map((p, i) => `${i+1}. "${p}"`));
+    
+    // Filtrar pestañas con coincidencia exacta O parcial (para manejar variaciones de nombres)
+    const pestañasAProcessar = pestañasDetectadas.filter(pestaña => {
+      // Coincidencia exacta
+      if (pestañasPermitidas.includes(pestaña)) {
+        return true;
+      }
+      
+      // Coincidencia parcial para manejar variaciones
+      const pestañaNormalizada = pestaña.toLowerCase().trim();
+      const coincidenciaParcial = pestañasPermitidas.some(permitida => {
+        const permitidaNormalizada = permitida.toLowerCase().trim();
+        
+        // Si cualquiera contiene la otra (ej: "Perfiles" coincide con "Perfiles Alveolar")
+        return pestañaNormalizada.includes(permitidaNormalizada) || 
+               permitidaNormalizada.includes(pestañaNormalizada);
+      });
+      
+      return coincidenciaParcial;
+    });
+    
+    console.log('✅ Pestañas que coinciden:', pestañasAProcessar);
+    
+    // Si no hay pestañas válidas, forzar las críticas
+    if (pestañasAProcessar.length === 0) {
+      console.log('🚀 No se encontraron pestañas válidas. Forzando pestañas críticas...');
+      pestañasAProcessar.push('Perfiles Alveolar', 'Policarbonato');
+    }
+    
+    console.log('🎯 Pestañas finales a procesar:', pestañasAProcessar);
+    
+    // Si aún no hay pestañas después del filtro mejorado, mostrar info de debug
+    if (pestañasAProcessar.length === 0) {
+      console.log('⚠️ PROBLEMA: No se encontraron pestañas válidas.');
+      console.log('📝 Pestañas detectadas:', pestañasDetectadas);
+      console.log('🎯 Pestañas esperadas:', pestañasPermitidas);
+    }
+    
+    console.log('🎯 Pestañas permitidas configuradas:', pestañasPermitidas);
+    console.log('✅ Pestañas que coinciden:', pestañasAProcessar);
     
     console.log(`🎯 Pestañas filtradas para web (Policarbonato, Perfiles, Accesorios): ${pestañasAProcessar.length}`, pestañasAProcessar);
     console.log(`❌ Pestañas excluidas: ${pestañasDetectadas.length - pestañasAProcessar.length}`, 

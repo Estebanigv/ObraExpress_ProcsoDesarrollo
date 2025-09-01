@@ -16,6 +16,7 @@ import { useAI } from '@/modules/admin/hooks/useAI';
 import type { AdminContext } from '@/modules/admin/types/ai.types';
 import InfoTooltip from '@/components/InfoTooltip';
 import CategoryVisibilityPanel from '@/components/admin/CategoryVisibilityPanel';
+import { getVisibleCategories, getCategoriesInOrder } from '@/config/categories-visibility';
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -568,8 +569,13 @@ export default function AdminDashboard() {
     }
     
     // Reglas de detección de unidades basadas en el valor:
-    if (num < 1.0) {
-      // Valores menores a 1 son metros decimales (0.81 mts)
+    // CORRECCIÓN ESPECIAL PARA PERFILES: 0,055 y 0,02 son milímetros
+    if (num < 0.1) {
+      // Valores muy pequeños como 0,055 y 0,02 son milímetros
+      const valorMm = (num * 1000).toFixed(0);
+      return { valor: valorMm, unidad: 'mm' };
+    } else if (num < 1.0) {
+      // Valores menores a 1 pero mayores a 0.1 son metros decimales
       const valorFormateado = num.toString().replace('.', ',');
       return { valor: valorFormateado, unidad: 'mts' };
     } else if (num <= 10.0) {
@@ -1081,7 +1087,28 @@ export default function AdminDashboard() {
     const [selectedProductInv, setSelectedProductInv] = useState<any>(null);
     const [showDetailModalInv, setShowDetailModalInv] = useState(false);
     const [updatingVisibilityInv, setUpdatingVisibilityInv] = useState<string | null>(null);
-    const [activeProviderTab, setActiveProviderTab] = useState('all');
+    const [activeProviderTab, setActiveProviderTab] = useState('leker'); // Cambiar default a 'leker'
+    
+    // Estados para el nuevo panel de visibilidad integrado
+    const [showVisibilityPanel, setShowVisibilityPanel] = useState(false);
+
+
+    // Función de login
+    const handleLogin = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
+      setError('');
+
+      // Simular validación de credenciales
+      if (credentials.username === 'admin' && credentials.password === 'admin123') {
+        setIsAuthenticated(true);
+        localStorage.setItem('obraexpress_admin_auth', 'true');
+      } else {
+        setError('Credenciales incorrectas');
+      }
+      
+      setLoading(false);
+    };
     
     // Procesar productos para el inventario
     const processedProducts = Object.entries(productosData?.productos_por_categoria || {}).map(([categoria, productos]) => 
@@ -1094,7 +1121,19 @@ export default function AdminDashboard() {
     ).flat();
 
     const allVariantesInv = processedProducts.flatMap((p: any) => 
-      p.variantes.map((v: any) => {
+      p.variantes
+        .filter((v: any) => {
+          // Filtrar productos sin SKU válido
+          const hasValidSKU = v.codigo && 
+            typeof v.codigo === 'string' && 
+            v.codigo.trim() !== '' && 
+            !v.codigo.includes('😛') && 
+            !v.codigo.includes('Se usa en') &&
+            /^[A-Za-z0-9\-_]+$/.test(v.codigo.trim()); // Solo alfanuméricos, guiones y guiones bajos
+          
+          return hasValidSKU;
+        })
+        .map((v: any) => {
         // Usar precios que vienen del API si existen, sino calcular
         const precioNeto = v.precio_neto || 0;
         const costoProveedor = v.costo_proveedor || (precioNeto > 0 ? calcularCostoProveedor(precioNeto) : 0);
@@ -1135,18 +1174,28 @@ export default function AdminDashboard() {
       totalCost: allVariantesInv.reduce((sum, v) => sum + (v.costo_proveedor * (v.stock || 0)), 0),
       potentialProfit: allVariantesInv.reduce((sum, v) => sum + (v.ganancia * (v.stock || 0)), 0),
       proveedores: [...new Set(allVariantesInv.map(v => v.proveedor))],
-      categorias: [...new Set(allVariantesInv.map(v => v.tipo).filter(tipo => tipo && tipo.trim() !== ''))]
+      categorias: getCategoriesInOrder().filter(cat => cat.visible).map(cat => cat.name)
     };
 
     // Filtros y ordenamiento
     const filteredProductsInv = processedProducts.map(product => ({
       ...product,
       variantes: product.variantes.filter((v: ProductVariant) => {
+        // Filtrar productos sin SKU válido primero
+        const hasValidSKU = v.codigo && 
+          typeof v.codigo === 'string' && 
+          v.codigo.trim() !== '' && 
+          !v.codigo.includes('😛') && 
+          !v.codigo.includes('Se usa en') &&
+          /^[A-Za-z0-9\-_]+$/.test(v.codigo.trim());
+        
+        if (!hasValidSKU) return false;
+        
         const matchesSearch = searchTermInv === '' || 
           v.nombre.toLowerCase().includes(searchTermInv.toLowerCase()) ||
           v.codigo.toLowerCase().includes(searchTermInv.toLowerCase());
         
-        const matchesCategory = selectedCategoryInv === 'all' || v.tipo === selectedCategoryInv;
+        const matchesCategory = selectedCategoryInv === 'all' || v.categoria === selectedCategoryInv;
         const matchesProveedor = selectedProveedorInv === 'all' || v.proveedor === selectedProveedorInv;
         const matchesVisibility = selectedVisibilityInv === 'all' ||
           (selectedVisibilityInv === 'visible' && v.disponible_en_web) ||
@@ -1565,34 +1614,87 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200">
           <div className="border-b border-slate-200">
             <div className="flex overflow-x-auto">
+              {/* Pestaña Leker (principal) */}
               <button
-                onClick={() => {setActiveProviderTab('all'); setSelectedProveedorInv('all');}}
+                onClick={() => {setActiveProviderTab('leker'); setSelectedProveedorInv('Leker');}}
                 className={`px-6 py-4 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors ${
-                  activeProviderTab === 'all' 
+                  activeProviderTab === 'leker' 
                     ? 'border-blue-600 text-blue-600 bg-blue-50' 
                     : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
                 }`}
               >
-                Todos los Proveedores ({statsInv.totalVariants})
+                <div className="flex items-center space-x-2">
+                  <span>📦</span>
+                  <span>Leker ({allVariantesInv.filter(v => v.proveedor === 'Leker').length}/{allVariantesInv.length})</span>
+                </div>
               </button>
-              {statsInv.proveedores.map(proveedor => {
-                const proveedorCount = allVariantesInv.filter(v => v.proveedor === proveedor).length;
-                return (
-                  <button
-                    key={proveedor}
-                    onClick={() => {setActiveProviderTab(proveedor); setSelectedProveedorInv(proveedor);}}
-                    className={`px-6 py-4 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors ${
-                      activeProviderTab === proveedor 
-                        ? 'border-blue-600 text-blue-600 bg-blue-50' 
-                        : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
-                    }`}
-                  >
-                    {proveedor} ({proveedorCount})
-                  </button>
-                );
-              })}
+              
+              {/* Botón deshabilitado para futuro desarrollo */}
+              <button
+                disabled
+                className="px-4 py-4 text-sm font-semibold border-b-2 border-transparent text-slate-300 cursor-not-allowed transition-colors"
+                title="Función en desarrollo"
+              >
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span>Nuevo Proveedor</span>
+                </div>
+              </button>
             </div>
           </div>
+        </div>
+
+        {/* NUEVA BARRA SUPERIOR: Métricas + Control de Visibilidad */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            {/* Métricas Globales Rápidas */}
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl font-bold text-slate-800">{statsInv.totalVariants}</span>
+                <span className="text-sm text-slate-600">Productos</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl font-bold text-green-600">{statsInv.visibleProducts}</span>
+                <span className="text-sm text-slate-600">Visibles</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl font-bold text-gray-500">{statsInv.hiddenProducts}</span>
+                <span className="text-sm text-slate-600">Ocultos</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl font-bold text-red-600">{statsInv.criticalStockCount}</span>
+                <span className="text-sm text-slate-600">Stock Crítico</span>
+              </div>
+            </div>
+            
+            {/* Botón para mostrar/ocultar panel de visibilidad */}
+            <button
+              onClick={() => setShowVisibilityPanel(!showVisibilityPanel)}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+                showVisibilityPanel 
+                  ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>{showVisibilityPanel ? 'Ocultar' : 'Gestionar'} Visibilidad</span>
+              <svg className={`w-4 h-4 transition-transform ${showVisibilityPanel ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Panel de Visibilidad Colapsable */}
+          {showVisibilityPanel && (
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              <CategoryVisibilityPanel className="mb-0" />
+            </div>
+          )}
         </div>
 
         {/* Filtros Profesionales - Una Sola Línea */}
@@ -2081,9 +2183,12 @@ export default function AdminDashboard() {
                     <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[70px]">
                       Tipo
                     </th>
-                    <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[50px]">
-                      Esp.
-                    </th>
+                    {/* Columna Espesor - Solo si hay productos con espesor */}
+                    {filteredProductsInv.some(p => p.variantes.some(v => v.espesor && v.espesor !== '' && v.espesor !== '0' && v.espesor !== 'N/A')) && (
+                      <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[50px]">
+                        Esp.
+                      </th>
+                    )}
                     <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[50px]">
                       Ancho
                     </th>
@@ -2179,22 +2284,24 @@ export default function AdminDashboard() {
                           </span>
                         </td>
                         
-                        {/* Espesor milímetros */}
-                        <td className="px-3 py-3 border border-slate-200 bg-white text-center">
-                          <div className="text-slate-900 font-semibold">
-                            {(() => {
-                              if (variant.espesor && variant.espesor !== '') {
-                                // Limpiar el valor de cualquier unidad (mm, cm, m, etc)
-                                let valor = variant.espesor.toString();
-                                valor = valor.replace(/mm|cm|m|mts/gi, '').trim();
-                                return valor;
-                              }
-                              
-                              return 'N/A';
-                            })()}
-                          </div>
-                          <div className="text-xs text-slate-400">mm</div>
-                        </td>
+                        {/* Espesor milímetros - Solo si hay productos con espesor */}
+                        {filteredProductsInv.some(p => p.variantes.some(v => v.espesor && v.espesor !== '' && v.espesor !== '0' && v.espesor !== 'N/A')) && (
+                          <td className="px-3 py-3 border border-slate-200 bg-white text-center">
+                            <div className="text-slate-900 font-semibold">
+                              {(() => {
+                                if (variant.espesor && variant.espesor !== '') {
+                                  // Limpiar el valor de cualquier unidad (mm, cm, m, etc)
+                                  let valor = variant.espesor.toString();
+                                  valor = valor.replace(/mm|cm|m|mts/gi, '').trim();
+                                  return valor;
+                                }
+                                
+                                return 'N/A';
+                              })()}
+                            </div>
+                            <div className="text-xs text-slate-400">mm</div>
+                          </td>
+                        )}
                         
                         {/* Ancho metros */}
                         <td className="px-3 py-3 border border-slate-200 bg-white text-center">
@@ -4082,10 +4189,7 @@ export default function AdminDashboard() {
         {/* Inventario Tab - VISTA ESCALABLE PARA MÚLTIPLES PROVEEDORES */}
         {activeTab === 'inventario' && (
           <div className="space-y-6">
-            {/* Panel de gestión de visibilidad */}
-            <CategoryVisibilityPanel />
-            
-            {/* Vista principal del inventario */}
+            {/* Vista principal del inventario con controles integrados */}
             <ProfessionalInventoryView />
           </div>
         )}
