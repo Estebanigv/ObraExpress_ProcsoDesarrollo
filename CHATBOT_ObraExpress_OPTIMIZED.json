@@ -1,0 +1,213 @@
+{
+  "name": "CHATBOT ObraExpress OPTIMIZADO",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "60a0fb64-995b-450e-8a36-cfb498269c30",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [400, 224],
+      "id": "743efa29-6592-4249-8687-72320fcd7c86",
+      "name": "Webhook1",
+      "webhookId": "60a0fb64-995b-450e-8a36-cfb498269c30",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1400, 224],
+      "id": "15e1967e-753f-43b8-b845-d75200853ad6",
+      "name": "Respond to Webhook1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1c796a30-27cf-43fb-b081-51f30e5ab447",
+              "name": "session_id",
+              "value": "={{$json.body.session_id}}",
+              "type": "string"
+            },
+            {
+              "id": "6d3b4ebd-5229-4c04-9148-701e1f3edb16",
+              "name": "message",
+              "value": "={{$json.body.message}}",
+              "type": "string"
+            },
+            {
+              "id": "c29672ef-4f23-444a-bff5-68c85c3971cf",
+              "name": "user_name",
+              "value": "={{$json.body.user_name}}",
+              "type": "string"
+            },
+            {
+              "id": "714e8584-c2ac-4b44-82ee-79970990e3d5",
+              "name": "timestamp",
+              "value": "={{$json.body.timestamp}}",
+              "type": "string"
+            },
+            {
+              "id": "714e8584-c2ac-4b44-82ee-79970990e3e5",
+              "name": "is_first_message",
+              "value": "={{$json.body.is_first_message}}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [592, 224],
+      "id": "193781d8-c995-4664-a1d8-6841226a473f",
+      "name": "Edit Fields1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json.message}}",
+        "options": {
+          "systemMessage": "=PERSONALIDAD Y ROL\nEres María Elena, la asesora comercial estrella de ObraExpress Chile 🇨🇱\nEres experta en policarbonatos, directa, amigable y enfocada 100% en VENDER.\nTu cliente ya dio su nombre: {{$('Edit Fields1').item.json.user_name}}\nTu misión: Convertir consultas en VENTAS REALES.\n\nESTRATEGIA DE VENTA AGRESIVA\n1. Precios reales al instante (no \"cotizaciones\", sino PRECIOS YA)\n2. Ofertas especiales con urgencia\n3. Comparar con competencia (somos 15% más baratos)\n4. Envío GRATIS si compra hoy\n5. Descuentos por volumen inmediatos\n6. Redireccionar a productos/WhatsApp cuando corresponda\n\nCATÁLOGO CON PRECIOS REALES (Agosto 2025)\n• Policarbonato 6mm Cristal: $8.500/m² (MÁS VENDIDO)\n• Policarbonato 10mm Cristal: $12.500/m² (MEJOR CALIDAD-PRECIO) \n• Policarbonato 16mm Cristal: $18.500/m² (MÁXIMA RESISTENCIA)\n• Perfil H: $3.500/ml (INDISPENSABLE)\n• Perfil U: $2.800/ml (TERMINACIONES)\n• Tornillos + Golilla: $150 c/u (mínimo 50 unidades)\n\nDESCUENTOS POR VOLUMEN\n• 20-50 m²: 5% descuento\n• 51-100 m²: 8% descuento  \n• 101+ m²: 12% descuento\n• Compra HOY: Envío GRATIS (ahorro $15.000)\n\nREGLAS DE RESPUESTA\n1. SIEMPRE dar precios reales, no \"cotizar después\"\n2. Calcular totales inmediatamente si dan medidas\n3. Comparar con competencia: \"En Sodimac pagarías $X, aquí $Y\"\n4. Crear urgencia: \"Oferta válida solo HOY\", \"Últimas unidades\"\n5. Ofrecer paquetes completos: material + accesorios + instalación\n6. Redireccionar cuando sea apropiado con comandos:\n   - [ACTION:REDIRECT_PRODUCTS] para ver catálogo\n   - [ACTION:OPEN_WHATSAPP] para consultor humano\n   - [ACTION:OPEN_CART] para ir al carrito\n\nEJEMPLOS DE RESPUESTAS AGRESIVAS\n\"¡Perfecto {{$('Edit Fields1').item.json.user_name}}! Para 3x2 metros necesitas 6m² de policarbonato 6mm = $51.000. En Sodimac te costaría $65.000. Aquí AHORAS $14.000 + ENVÍO GRATIS si confirmas HOY. ¿Lo agregamos al carrito? [ACTION:OPEN_CART]\"\n\n\"¡Excelente elección! El 10mm es nuestro BESTSELLER. Para tu pérgola 4x3m son 12m² = $150.000. Con descuento por volumen (8%) = $138.000. Incluyo GRATIS los perfiles H ($24.000 valor). Total: $138.000 con TODO incluido. ¿Confirmamos? [ACTION:OPEN_WHATSAPP]\"\n\nCOMPORTAMIENTO\n• Precio INMEDIATO, no \"después cotizo\"\n• Crear urgencia y escasez  \n• Comparar con competencia\n• Ofrecer descuentos por decidir YA\n• Incluir envío gratis como incentivo\n• Usar emojis de venta: 🔥💰⚡🎁✅\n• Preguntar directamente: \"¿Lo compramos?\", \"¿Confirmamos?\"\n• Redireccionar estratégicamente con [ACTION:...]\n\nRESPUESTA SIEMPRE EN FORMATO:\n{\n  \"response\": \"<mensaje_agresivo_de_venta>\",\n  \"price_quoted\": <numero_si_cotizaste>,\n  \"action_taken\": \"<quote|redirect|upsell|close>\",\n  \"urgency_level\": \"<low|medium|high>\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [900, 224],
+      "id": "75e4d24c-8f91-4e4a-80b5-9bc208dc0fb3",
+      "name": "AI Agent - Sales Expert",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Procesar respuesta del AI Agent optimizada para venta\nconst agentOutput = $json.output;\nconst userName = $('Edit Fields1').item.json.user_name || 'Cliente';\nconst sessionId = $('Edit Fields1').item.json.session_id;\n\nlet parsedResponse;\ntry {\n  parsedResponse = typeof agentOutput === 'string' ? JSON.parse(agentOutput) : agentOutput;\n} catch (error) {\n  console.log('Error parsing agent output, using fallback');\n  parsedResponse = null;\n}\n\n// Extraer respuesta principal\nlet mainResponse = '';\nif (parsedResponse && parsedResponse.response) {\n  mainResponse = parsedResponse.response;\n} else {\n  // Fallback con mensaje de venta agresivo\n  mainResponse = `¡Hola ${userName}! 🔥 Soy María Elena de ObraExpress. \n\n💰 **OFERTAS ESPECIALES HOY:**\n• Policarbonato 6mm → $8.500/m² (15% menos que competencia)\n• Policarbonato 10mm → $12.500/m² (BESTSELLER)\n• ENVÍO GRATIS si compras hoy\n\n⚡ ¿Qué medidas necesitas? Te doy el precio FINAL al instante.`;\n}\n\n// Detectar si necesita redirección\nlet needsRedirect = false;\nlet redirectType = null;\n\nif (mainResponse.includes('[ACTION:REDIRECT_PRODUCTS]')) {\n  needsRedirect = true;\n  redirectType = 'products';\n  mainResponse = mainResponse.replace(/\\[ACTION:REDIRECT_PRODUCTS\\]/g, '').trim();\n}\n\nif (mainResponse.includes('[ACTION:OPEN_WHATSAPP]')) {\n  needsRedirect = true;\n  redirectType = 'whatsapp';\n  mainResponse = mainResponse.replace(/\\[ACTION:OPEN_WHATSAPP\\]/g, '').trim();\n}\n\nif (mainResponse.includes('[ACTION:OPEN_CART]')) {\n  needsRedirect = true;\n  redirectType = 'cart';\n  mainResponse = mainResponse.replace(/\\[ACTION:OPEN_CART\\]/g, '').trim();\n}\n\n// Agregar comandos de acción si es necesario\nif (needsRedirect) {\n  switch (redirectType) {\n    case 'products':\n      mainResponse += ' [ACTION:REDIRECT_PRODUCTS]';\n      break;\n    case 'whatsapp':\n      mainResponse += ' [ACTION:OPEN_WHATSAPP]';\n      break;\n    case 'cart':\n      mainResponse += ' [ACTION:OPEN_CART]';\n      break;\n  }\n}\n\n// Log para debug\nconsole.log('=== SALES AGENT DEBUG ===');\nconsole.log('User:', userName);\nconsole.log('Session:', sessionId);\nconsole.log('Agent output:', agentOutput);\nconsole.log('Final response:', mainResponse);\nconsole.log('Redirect needed:', needsRedirect, redirectType);\n\n// Respuesta final optimizada\nconst finalResponse = {\n  response: mainResponse,\n  success: true,\n  user_name: userName,\n  session_id: sessionId,\n  timestamp: new Date().toISOString(),\n  redirect_action: needsRedirect ? redirectType : null,\n  sales_focused: true\n};\n\nreturn { json: finalResponse };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 224],
+      "id": "b7230016-96f3-4c79-bee1-03176e3a8b48",
+      "name": "Sales Response Processor",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1n9wJx1-lUDcoIxV4uo6GkB8eywdH2CsGIUlQTt_hjIc",
+          "mode": "list",
+          "cachedResultName": "Productos_Policarbonato_Ordenados",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1n9wJx1-lUDcoIxV4uo6GkB8eywdH2CsGIUlQTt_hjIc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 147076884,
+          "mode": "list",
+          "cachedResultName": "Policarbonato",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1n9wJx1-lUDcoIxV4uo6GkB8eywdH2CsGIUlQTt_hjIc/edit#gid=147076884"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [1120, 448],
+      "id": "7fbaeedc-638e-4175-b4c5-5c7f4a1db31b",
+      "name": "Get Products & Prices",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "P8mRo6YrO8NXePrE",
+          "name": "Google Sheets EIGV"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{$('Edit Fields1').item.json.session_id}}",
+        "contextWindowLength": 8
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [720, 448],
+      "id": "c3c151c3-bf35-4551-8f11-dc909f6076e1",
+      "name": "Sales Memory"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 500
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [496, 480],
+      "id": "2b8924cb-ae0f-4f48-afab-dfeb6312395a",
+      "name": "Sales AI Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "OB2d9Y3FwC8woMlv",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Capturar leads de alta calidad para seguimiento comercial\nconst userData = $('Edit Fields1').item.json;\nconst agentData = $json;\n\n// Detectar si es un lead calificado\nconst isQualifiedLead = \n  userData.message.toLowerCase().includes('proyecto') ||\n  userData.message.toLowerCase().includes('empresa') ||\n  userData.message.toLowerCase().includes('metros') ||\n  userData.message.toLowerCase().includes('construcción') ||\n  userData.message.toLowerCase().includes('grande') ||\n  userData.message.toLowerCase().includes('comercial');\n\n// Crear registro de lead si está calificado\nif (isQualifiedLead) {\n  const leadData = {\n    timestamp: new Date().toISOString(),\n    user_name: userData.user_name || 'Cliente',\n    session_id: userData.session_id,\n    message: userData.message,\n    source: 'chatbot_website',\n    qualification: 'high_potential',\n    requires_followup: true,\n    estimated_project_size: 'medium_to_large',\n    next_action: 'human_contact_recommended'\n  };\n  \n  console.log('🎯 LEAD CALIFICADO DETECTADO:', leadData);\n  \n  // Aquí podrías enviar a otro webhook, CRM, etc.\n  // Por ahora solo logueamos\n}\n\n// Continuar con el flujo normal\nreturn { json: agentData };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 224],
+      "id": "lead-capture-node",
+      "name": "Lead Capture & Qualification"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook1": {
+      "main": [[{"node": "Edit Fields1", "type": "main", "index": 0}]]
+    },
+    "Edit Fields1": {
+      "main": [[{"node": "AI Agent - Sales Expert", "type": "main", "index": 0}]]
+    },
+    "AI Agent - Sales Expert": {
+      "main": [[{"node": "Lead Capture & Qualification", "type": "main", "index": 0}]]
+    },
+    "Lead Capture & Qualification": {
+      "main": [[{"node": "Sales Response Processor", "type": "main", "index": 0}]]
+    },
+    "Sales Response Processor": {
+      "main": [[{"node": "Respond to Webhook1", "type": "main", "index": 0}]]
+    },
+    "Get Products & Prices": {
+      "ai_tool": [[{"node": "AI Agent - Sales Expert", "type": "ai_tool", "index": 0}]]
+    },
+    "Sales Memory": {
+      "ai_memory": [[{"node": "AI Agent - Sales Expert", "type": "ai_memory", "index": 0}]]
+    },
+    "Sales AI Model": {
+      "ai_languageModel": [[{"node": "AI Agent - Sales Expert", "type": "ai_languageModel", "index": 0}]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

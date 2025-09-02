@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" 
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  
+  <!-- Página Principal -->
+  <url>
+    <loc>https://obraexpress.cl/</loc>
+    <lastmod>2024-08-24</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://obraexpress.cl/assets/images/Nosotros/about-us-team.webp</image:loc>
+      <image:title>ObraExpress Chile - Equipo de trabajo</image:title>
+      <image:caption>Equipo profesional de ObraExpress Chile especializado en materiales de construcción</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Productos -->
+  <url>
+    <loc>https://obraexpress.cl/productos</loc>
+    <lastmod>2024-08-24</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://obraexpress.cl/assets/images/Productos/hero-productos.webp</image:loc>
+      <image:title>Catálogo de Productos - ObraExpress Chile</image:title>
+      <image:caption>Amplio catálogo de policarbonatos y materiales para construcción</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Nosotros -->
+  <url>
+    <loc>https://obraexpress.cl/nosotros</loc>
+    <lastmod>2024-08-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://obraexpress.cl/assets/images/Nosotros/about-us-team.webp</image:loc>
+      <image:title>Sobre Nosotros - ObraExpress Chile</image:title>
+      <image:caption>Conoce más sobre nuestra empresa y nuestro equipo de trabajo</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Contacto -->
+  <url>
+    <loc>https://obraexpress.cl/contacto</loc>
+    <lastmod>2024-08-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Productos Específicos -->
+  <url>
+    <loc>https://obraexpress.cl/productos/policarbonato-alveolar</loc>
+    <lastmod>2024-08-24</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://obraexpress.cl/assets/images/Productos/Policarbonato%20Alveolar/alveolar-hero.webp</image:loc>
+      <image:title>Policarbonato Alveolar - ObraExpress Chile</image:title>
+      <image:caption>Láminas alveolares de policarbonato para construcción</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://obraexpress.cl/productos/policarbonato-compacto</loc>
+    <lastmod>2024-08-24</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://obraexpress.cl/assets/images/Productos/Policarbonato%20Compacto/compacto-hero.webp</image:loc>
+      <image:title>Policarbonato Compacto - ObraExpress Chile</image:title>
+      <image:caption>Láminas compactas de policarbonato resistentes</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://obraexpress.cl/productos/policarbonato-ondulado</loc>
+    <lastmod>2024-08-24</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://obraexpress.cl/assets/images/Productos/Policarbonato%20Ondulado/ondulado-hero.webp</image:loc>
+      <image:title>Policarbonato Ondulado - ObraExpress Chile</image:title>
+      <image:caption>Láminas onduladas de policarbonato para techados</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://obraexpress.cl/productos/sistemas-estructurales</loc>
+    <lastmod>2024-08-24</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://obraexpress.cl/assets/images/Productos/Sistemas%20Estructurales/sistemas-hero.webp</image:loc>
+      <image:title>Sistemas Estructurales - ObraExpress Chile</image:title>
+      <image:caption>Sistemas y perfiles estructurales para construcción</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://obraexpress.cl/productos/accesorios</loc>
+    <lastmod>2024-08-24</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://obraexpress.cl/assets/images/Productos/Accesorios/accesorios-hero.webp</image:loc>
+      <image:title>Accesorios para Policarbonato - ObraExpress Chile</image:title>
+      <image:caption>Accesorios y herrajes para instalación de policarbonatos</image:caption>
+    </image:image>
+  </url>
+
+</urlset>

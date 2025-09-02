@@ -1,0 +1,13 @@
+{
+  "productos_por_categoria": {
+    "Policarbonato": []
+  },
+  "productos_policarbonato": [],
+  "metadata": {
+    "generado_en": "2024-08-29T00:00:00.000Z",
+    "fuente": "clean_regeneration",
+    "version": "1.0.0",
+    "total_productos": 0,
+    "notas": "Archivo regenerado tras resolución de conflictos de merge. Los datos se cargarán desde Supabase o mediante sincronización."
+  }
+}

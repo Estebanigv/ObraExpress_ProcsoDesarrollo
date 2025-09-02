@@ -1,0 +1,15 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "build": {
+    "env": {
+      "STATIC_EXPORT": "false",
+      "NEXT_PUBLIC_AUTH_MODE": "vercel"
+    }
+  },
+  "env": {
+    "NEXT_PUBLIC_BASE_URL": "https://obra-express.vercel.app",
+    "NEXT_PUBLIC_AUTH_MODE": "vercel"
+  }
+}

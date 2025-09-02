@@ -1,0 +1,54 @@
+# Robots.txt para ObraExpress Chile
+User-agent: *
+Allow: /
+
+# Permitir acceso a recursos importantes
+Allow: /assets/
+Allow: /api/
+Allow: /_next/static/
+Allow: /sitemap.xml
+Allow: /manifest.json
+
+# Bloquear rutas administrativas y sensibles
+Disallow: /admin
+Disallow: /login
+Disallow: /auth/
+Disallow: /registro
+Disallow: /_next/
+Disallow: /api/auth/
+Disallow: /temp/
+Disallow: /.well-known/
+
+# Optimizaciones específicas para bots
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+# Bloquear bots maliciosos
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+# Sitemap location
+Sitemap: https://obraexpress.cl/sitemap.xml
+
+# Host preference
+Host: https://obraexpress.cl
