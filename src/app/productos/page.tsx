@@ -129,19 +129,29 @@ function ProductosContent() {
       // Usar la estructura actualizada productos_por_categoria
       const productos_por_categoria = productosData.productos_por_categoria || {};
       
-      // Convertir productos_por_categoria a formato esperado
-      const productos_policarbonato = Object.values(productos_por_categoria).flat().map(producto => {
-        // Obtener la imagen desde la primera variante que tenga imagen
-        const primeraVarianteConImagen = producto.variantes?.find(v => v.ruta_imagen);
-        return {
-          ...producto,
-          imagen: primeraVarianteConImagen?.ruta_imagen || ''
-        };
+      // Mantener las categorías separadas
+      const result = {};
+      
+      Object.entries(productos_por_categoria).forEach(([categoria, productos]) => {
+        const productosFormateados = (productos as any[]).map(producto => {
+          // Obtener la imagen desde la primera variante que tenga imagen
+          const primeraVarianteConImagen = producto.variantes?.find(v => v.ruta_imagen);
+          return {
+            ...producto,
+            imagen: primeraVarianteConImagen?.ruta_imagen || ''
+          };
+        });
+        
+        // Usar nombres de categoría normalizados para la clave
+        const categoriaKey = categoria.toLowerCase().replace(/\s+/g, '_');
+        result[categoriaKey] = productosFormateados;
       });
       
       return {
-        productos_policarbonato,
-        accesorios: []
+        ...result,
+        // Mantener compatibilidad con código legacy
+        productos_policarbonato: result['policarbonato'] || [],
+        accesorios: result['accesorios'] || []
       };
     } catch (error) {
       console.warn('Error procesando datos de productos:', error);
@@ -153,7 +163,39 @@ function ProductosContent() {
   }, [productosData]);
 
   const productos = useMemo(() => {
-    return productosAgrupados.productos_policarbonato || [];
+    // Combinar productos de todas las categorías disponibles sin duplicar
+    const productosUnicos = new Map();
+    
+    console.log('🔄 DEBUG: Procesando categorías:', Object.keys(productosAgrupados));
+    
+    // Agregar productos de cada categoría disponible (excepto productos_policarbonato que es legacy)
+    Object.keys(productosAgrupados).forEach(key => {
+      if (key !== 'productos_policarbonato' && key !== 'accesorios') {
+        const categoria = productosAgrupados[key];
+        if (Array.isArray(categoria)) {
+          console.log(`✅ Agregando categoría ${key} con ${categoria.length} productos`);
+          categoria.forEach(producto => {
+            if (!productosUnicos.has(producto.id)) {
+              productosUnicos.set(producto.id, producto);
+            }
+          });
+        }
+      }
+    });
+    
+    // Solo agregar productos_policarbonato si no hay otras categorías (fallback)
+    if (productosUnicos.size === 0 && productosAgrupados.productos_policarbonato) {
+      console.log('✅ Usando productos_policarbonato como fallback');
+      productosAgrupados.productos_policarbonato.forEach(producto => {
+        if (!productosUnicos.has(producto.id)) {
+          productosUnicos.set(producto.id, producto);
+        }
+      });
+    }
+    
+    const result = Array.from(productosUnicos.values());
+    console.log('🎯 Total productos únicos:', result.length);
+    return result;
   }, [productosAgrupados]);
 
 

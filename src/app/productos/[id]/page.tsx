@@ -299,9 +299,20 @@ export default function ProductDetailPage() {
                 {/* Título y Rating */}
                 <div className="mb-6">
                   <h1 className="text-3xl font-bold text-gray-900 mb-3">{producto.nombre}</h1>
+                  
+                  {/* Descripción detallada */}
+                  <div className="mb-4">
+                    <p className="text-gray-700 text-base leading-relaxed">
+                      {producto.descripcion || `${producto.tipo} de alta calidad con garantía extendida y protección UV incluida.`}
+                    </p>
+                  </div>
+                  
                   {selectedVariant && (
-                    <div className="text-sm text-gray-600 mb-3">
-                      SKU: {selectedVariant.codigo}
+                    <div className="text-sm text-gray-600 mb-3 bg-gray-50 p-2 rounded-lg">
+                      <strong>SKU:</strong> {selectedVariant.codigo}
+                      {selectedVariant.descripcion && selectedVariant.descripcion !== selectedVariant.nombre && (
+                        <div className="mt-1 text-xs text-gray-500">{selectedVariant.descripcion}</div>
+                      )}
                     </div>
                   )}
                   
@@ -315,35 +326,73 @@ export default function ProductDetailPage() {
                       ))}
                     </div>
                     <span className="text-sm font-medium">(4.8)</span>
-                    <span className="text-sm text-gray-500">1k+ reseñas</span>
+                    <span className="text-sm text-gray-500">Basado en {producto.variantes_count || 0} variantes</span>
                   </div>
                   
-                  {/* Stock info */}
+                  {/* Stock info mejorado */}
                   <div className="flex items-center space-x-4 text-sm">
-                    <div className="flex items-center text-green-600">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                      12 viendo ahora mismo
+                    <div className={`flex items-center ${
+                      producto.stock_total > 10 ? 'text-green-600' : 
+                      producto.stock_total > 0 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full mr-2 ${
+                        producto.stock_total > 10 ? 'bg-green-500' : 
+                        producto.stock_total > 0 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}></div>
+                      {producto.stock_disponible || (producto.stock_total > 10 ? 'Disponible' : 'Stock limitado')}
                     </div>
                     <div className="text-gray-600">
-                      Stock disponible: 10
+                      {producto.colores_disponibles || opciones.colores.length} colores • {producto.dimensiones_disponibles || opciones.dimensiones.length} tamaños
                     </div>
                   </div>
+                  
+                  {/* Usos principales */}
+                  {producto.usos_principales && producto.usos_principales.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Aplicaciones principales:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {producto.usos_principales.map((uso, index) => (
+                          <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            {uso}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Precio */}
                 <div className="mb-8">
                   {selectedVariant ? (
-                    <div className="flex items-baseline space-x-2">
-                      <span className="text-4xl font-bold text-gray-900">
-                        ${selectedVariant.precio_con_iva.toLocaleString()}
-                      </span>
-                      <span className="text-xl text-gray-500 line-through">
-                        ${Math.round(selectedVariant.precio_con_iva * 1.2).toLocaleString()}
-                      </span>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-2xl border border-green-200">
+                      <div className="flex items-baseline space-x-3 mb-2">
+                        <span className="text-4xl font-bold text-green-900">
+                          ${selectedVariant.precio_con_iva.toLocaleString()}
+                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-green-700 font-medium">IVA incluido</span>
+                          {selectedVariant.precio_neto && (
+                            <span className="text-xs text-green-600">
+                              Neto: ${selectedVariant.precio_neto.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center text-sm text-green-700">
+                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Precio competitivo • {selectedVariant.garantia || '10 años de garantía'}
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-2xl text-gray-500">
-                      Selecciona opciones para ver el precio
+                    <div className="bg-gray-50 p-4 rounded-2xl border-2 border-dashed border-gray-300">
+                      <div className="text-center">
+                        <div className="text-2xl text-gray-500 mb-2">Selecciona opciones</div>
+                        <div className="text-sm text-gray-400">
+                          Desde ${producto.precio_desde?.toLocaleString() || 0} hasta ${producto.precio_maximo?.toLocaleString() || 0}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -532,22 +581,41 @@ export default function ProductDetailPage() {
                   </button>
                 </div>
 
-                {/* Información adicional */}
+                {/* Características del producto */}
+                {producto.caracteristicas && producto.caracteristicas.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Características principales</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {producto.caracteristicas.map((caracteristica, index) => (
+                        <div key={index} className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                          <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm text-gray-700">{caracteristica}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Información adicional mejorada */}
                 <div className="mt-8 grid grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-blue-50 rounded-xl">
                     <div className="text-blue-600 text-2xl mb-2">✓</div>
                     <div className="text-sm font-semibold text-blue-900">Garantía</div>
-                    <div className="text-sm text-blue-700">10 años</div>
+                    <div className="text-sm text-blue-700">{selectedVariant?.garantia || producto.caracteristicas?.find(c => c.includes('años')) || '10 años'}</div>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-xl">
-                    <div className="text-green-600 text-2xl mb-2">🏠</div>
+                    <div className="text-green-600 text-2xl mb-2">☀️</div>
                     <div className="text-sm font-semibold text-green-900">Protección UV</div>
-                    <div className="text-sm text-green-700">Incluida</div>
+                    <div className="text-sm text-green-700">
+                      {selectedVariant?.uv_protection ? 'Incluida' : 'Disponible'}
+                    </div>
                   </div>
                   <div className="text-center p-4 bg-amber-50 rounded-xl">
-                    <div className="text-amber-600 text-2xl mb-2">📞</div>
-                    <div className="text-sm font-semibold text-amber-900">Soporte</div>
-                    <div className="text-sm text-amber-700">24/7</div>
+                    <div className="text-amber-600 text-2xl mb-2">📋</div>
+                    <div className="text-sm font-semibold text-amber-900">Variantes</div>
+                    <div className="text-sm text-amber-700">{producto.total_variantes || producto.variantes_count} disponibles</div>
                   </div>
                 </div>
               </div>

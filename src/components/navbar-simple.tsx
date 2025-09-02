@@ -88,19 +88,19 @@ function Navbar({ className }: { className?: string }) {
   // Búsqueda en tiempo real
   useEffect(() => {
     if (searchQuery.length >= 3) {
-      // Simular productos para búsqueda - Solo los 4 productos permitidos
+      // Solo mostrar productos de categorías visibles (Policarbonato y Perfiles Alveolar)
       const mockProducts = [
-        'Policarbonato Alveolar 4mm',
-        'Policarbonato Alveolar 6mm',
-        'Policarbonato Alveolar 8mm', 
-        'Policarbonato Ondulado Clear',
-        'Policarbonato Ondulado Bronce',
-        'Policarbonato Ondulado Opal',
-        'Policarbonato Compacto 2mm',
-        'Policarbonato Compacto 3mm',
-        'Policarbonato Compacto 4mm',
-        'Perfiles de Aluminio',
-        'Perfiles de Cierre'
+        'Policarbonato Alveolar 4mm Clear',
+        'Policarbonato Alveolar 6mm Bronce',
+        'Policarbonato Alveolar 8mm Opal', 
+        'Policarbonato Ondulado 0,5mm Clear',
+        'Policarbonato Ondulado 0,7mm Bronce',
+        'Policarbonato Ondulado 1mm Opal',
+        'Policarbonato Compacto 2mm Clear',
+        'Policarbonato Compacto 3mm Bronce',
+        'Policarbonato Compacto 4mm Opal',
+        'Perfil U',
+        'Perfil Clip'
       ];
       
       const filtered = mockProducts
@@ -169,30 +169,17 @@ function Navbar({ className }: { className?: string }) {
   };
 
   const handleMouseLeaveMenu = () => {
-    const timeout = setTimeout(() => {
-      setActiveDropdown(null);
-      setSubMenuActive(null);
-    }, 500);
-    setCloseTimeout(timeout);
+    // NO hacer nada - El menú se mantiene abierto
+    // Solo se cierra por acción explícita del usuario
   };
 
   const handleMouseEnterSubMenu = (submenu: string) => {
-    if (closeTimeout) {
-      clearTimeout(closeTimeout);
-      setCloseTimeout(null);
-    }
-    if (subMenuTimeout) {
-      clearTimeout(subMenuTimeout);
-      setSubMenuTimeout(null);
-    }
+    // Solo establecer el submenu activo, sin timeouts
     setSubMenuActive(submenu);
   };
 
   const handleMouseLeaveSubMenu = () => {
-    const timeout = setTimeout(() => {
-      setSubMenuActive(null);
-    }, 300);
-    setSubMenuTimeout(timeout);
+    // NO hacer nada - Mantener siempre abierto
   };
 
   const handleMenuItemHover = (item: string) => {
@@ -202,6 +189,52 @@ function Navbar({ className }: { className?: string }) {
   const handleMenuLeave = () => {
     setActiveMenuItem(null);
   };
+
+  // Función para cerrar el menú SOLO por acción del usuario (clic fuera o muy lejos del área)
+  const handleForceClose = () => {
+    setActiveDropdown(null);
+    setSubMenuActive(null);
+    if (closeTimeout) {
+      clearTimeout(closeTimeout);
+      setCloseTimeout(null);
+    }
+    if (subMenuTimeout) {
+      clearTimeout(subMenuTimeout);
+      setSubMenuTimeout(null);
+    }
+  };
+
+  // Cerrar menú solo cuando el usuario hace clic fuera del área completa
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      const menuArea = document.querySelector('.menu-container');
+      const dropdownAreas = document.querySelectorAll('[class*="absolute top-full"], [class*="absolute left-full"]');
+      
+      let isInsideMenu = false;
+      if (menuArea && menuArea.contains(target)) {
+        isInsideMenu = true;
+      }
+      
+      dropdownAreas.forEach(area => {
+        if (area && area.contains(target)) {
+          isInsideMenu = true;
+        }
+      });
+      
+      if (!isInsideMenu) {
+        handleForceClose();
+      }
+    };
+
+    if (activeDropdown || subMenuActive) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [activeDropdown, subMenuActive]);
 
   return (
     <>
@@ -643,7 +676,9 @@ function Navbar({ className }: { className?: string }) {
       {/* Main Navigation */}
       <div className={`relative transition-all duration-300 ${activeDropdown ? 'z-10' : 'z-40'}`}>
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex justify-center pt-8 pb-8">
+        <div 
+          className="hidden lg:flex justify-center pt-8 pb-8"
+        >
           <div className="relative">
             {/* Navigation Container - Aumentado el tamaño */}
             <div className="bg-white/70 backdrop-blur-md rounded-full shadow-xl px-16 py-3 border border-gray-300/30">
@@ -771,31 +806,56 @@ function Navbar({ className }: { className?: string }) {
                   {/* Productos Dropdown */}
                   {activeDropdown === "Productos" && (
                     <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-6 w-48 bg-white rounded-lg shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] border-2 border-gray-400 p-2 z-[99999]">
+                      
+                      {/* Policarbonatos */}
                       <div 
                         className="relative px-3 py-2 hover:bg-amber-50 rounded transition-colors cursor-pointer flex items-center justify-between"
                         onMouseEnter={() => handleMouseEnterSubMenu("Policarbonatos")}
-                        onMouseLeave={handleMouseLeaveSubMenu}
+                        onMouseLeave={() => {
+                          // No hacer nada - menú permanece estático
+                        }}
                       >
                         <span className="text-sm text-gray-800 font-medium hover:text-amber-600">Policarbonatos</span>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                         
-                        {/* Extra hover area to the right for easier navigation */}
-                        <div className="absolute right-0 top-0 w-8 h-full bg-transparent z-[140]"></div>
+                        {/* Extra hover area to the right for easier navigation - AMPLIADA */}
+                        <div className="absolute right-0 top-0 w-16 h-full bg-transparent z-[140]"></div>
+                      </div>
+
+                      {/* Perfiles Alveolares */}
+                      <div 
+                        className="relative px-3 py-2 hover:bg-amber-50 rounded transition-colors cursor-pointer flex items-center justify-between"
+                        onMouseEnter={() => handleMouseEnterSubMenu("Perfiles")}
+                        onMouseLeave={() => {
+                          // No hacer nada - menú permanece estático
+                        }}
+                      >
+                        <span className="text-sm text-gray-800 font-medium hover:text-amber-600">Perfiles Alveolares</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                         
-                        {/* Policarbonatos Side Submenu */}
-                        {subMenuActive === "Policarbonatos" && (
+                        {/* Extra hover area to the right for easier navigation - AMPLIADA */}
+                        <div className="absolute right-0 top-0 w-16 h-full bg-transparent z-[140]"></div>
+                      </div>
+                      
+                      {/* Policarbonatos Side Submenu */}
+                      {subMenuActive === "Policarbonatos" && (
                           <>
-                            {/* Invisible bridge to prevent gap issues */}
-                            <div className="absolute left-full top-0 w-4 h-full bg-transparent z-[140]"></div>
+                            {/* Invisible bridge to prevent gap issues - AMPLIADO */}
+                            <div className="absolute left-full top-0 w-8 h-full bg-transparent z-[140]"></div>
                             <div 
                               className="absolute left-full top-[-10px] ml-2 w-72 bg-white rounded-lg shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] border-2 border-gray-400 p-4 z-[99999]"
                               onMouseEnter={() => handleMouseEnterSubMenu("Policarbonatos")}
-                              onMouseLeave={handleMouseLeaveSubMenu}
+                              onMouseLeave={() => {
+                                // Solo cerrar si realmente sales del área completa del menú
+                                // No cerrar automáticamente para mejor UX
+                              }}
                             >
                               <div className="text-sm font-semibold text-gray-800 mb-3 border-b border-yellow-200 pb-2 flex justify-between items-center">
-                                <span>Tipos de Policarbonatos</span>
+                                <span>Policarbonatos</span>
                                 <button 
                                   onClick={() => setSubMenuActive(null)}
                                   className="text-gray-400 hover:text-gray-600 text-xs"
@@ -804,59 +864,35 @@ function Navbar({ className }: { className?: string }) {
                                 </button>
                               </div>
                             <div className="space-y-1">
-                              <HoveredLink href="/productos?categoria=Policarbonatos&subcategoria=Onduladas" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
-                                Onduladas
+                              <HoveredLink href="/productos?categoria=Policarbonato&tipo=Ondulado" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
+                                Ondulado
                               </HoveredLink>
-                              <HoveredLink href="/productos?categoria=Policarbonato Alveolar" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
+                              <HoveredLink href="/productos?categoria=Policarbonato&tipo=Alveolar" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
                                 Alveolar
                               </HoveredLink>
-                              <HoveredLink href="/productos?categoria=Policarbonato Compacto" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
-                                Alveolar Compacto
-                              </HoveredLink>
-                              <HoveredLink href="/productos?categoria=Greca Industrial" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
-                                Greca Industrial
-                              </HoveredLink>
-                              <HoveredLink href="/productos?categoria=Perfiles y Accesorios" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
-                                Perfiles y Accesorios
+                              <HoveredLink href="/productos?categoria=Policarbonato&tipo=Compacto" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
+                                Compacto
                               </HoveredLink>
                             </div>
                             </div>
                           </>
                         )}
-                      </div>
-                      
-                      <HoveredLink href="/productos?categoria=Rollos" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">Rollos</HoveredLink>
-                      <HoveredLink href="/productos?categoria=Accesorios" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">Accesorios</HoveredLink>
-                      <HoveredLink href="/productos?categoria=Perfiles" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">Perfiles</HoveredLink>
-                      
-                      {/* Pinturas/Selladores con submenú lateral */}
-                      <div 
-                        className="relative"
-                        onMouseEnter={() => handleMouseEnterSubMenu("Pinturas")}
-                        onMouseLeave={handleMouseLeaveSubMenu}
-                      >
-                        <div className="flex items-center justify-between text-gray-700 hover:text-amber-600 cursor-pointer py-2 px-3 hover:bg-amber-50 rounded transition-colors">
-                          <span className="text-sm">Pinturas/Selladores</span>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                        
-                        {/* Extra hover area to the right for easier navigation */}
-                        <div className="absolute right-0 top-0 w-8 h-full bg-transparent z-[140]"></div>
-                        
-                        {/* Pinturas/Selladores Side Submenu */}
-                        {subMenuActive === "Pinturas" && (
+
+                        {/* Perfiles Side Submenu */}
+                        {subMenuActive === "Perfiles" && (
                           <>
-                            {/* Invisible bridge to prevent gap issues */}
-                            <div className="absolute left-full top-0 w-4 h-full bg-transparent z-[140]"></div>
+                            {/* Invisible bridge to prevent gap issues - AMPLIADO */}
+                            <div className="absolute left-full top-0 w-8 h-full bg-transparent z-[140]"></div>
                             <div 
                               className="absolute left-full top-[-10px] ml-2 w-72 bg-white rounded-lg shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] border-2 border-gray-400 p-4 z-[99999]"
-                              onMouseEnter={() => handleMouseEnterSubMenu("Pinturas")}
-                              onMouseLeave={handleMouseLeaveSubMenu}
+                              onMouseEnter={() => handleMouseEnterSubMenu("Perfiles")}
+                              onMouseLeave={() => {
+                                // Solo cerrar si realmente sales del área completa del menú
+                                // No cerrar automáticamente para mejor UX
+                              }}
                             >
                               <div className="text-sm font-semibold text-gray-800 mb-3 border-b border-yellow-200 pb-2 flex justify-between items-center">
-                                <span>Tipos de Pinturas/Selladores</span>
+                                <span>Perfiles Alveolares</span>
                                 <button 
                                   onClick={() => setSubMenuActive(null)}
                                   className="text-gray-400 hover:text-gray-600 text-xs"
@@ -865,20 +901,17 @@ function Navbar({ className }: { className?: string }) {
                                 </button>
                               </div>
                               <div className="space-y-1">
-                                <HoveredLink href="/productos?categoria=Barnices de madera" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
-                                  Barnices de madera
+                                <HoveredLink href="/productos?categoria=Perfiles Alveolar&tipo=Perfil U" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
+                                  Perfil U
                                 </HoveredLink>
-                                <HoveredLink href="/productos?categoria=Pinturas metal" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
-                                  Pinturas metal
-                                </HoveredLink>
-                                <HoveredLink href="/productos?categoria=Selladores" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
-                                  Selladores
+                                <HoveredLink href="/productos?categoria=Perfiles Alveolar&tipo=Perfil Clip" className="block px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 rounded transition-colors hover:text-amber-600 cursor-pointer">
+                                  Perfil Clip
                                 </HoveredLink>
                               </div>
                             </div>
                           </>
                         )}
-                      </div>
+                      
                     </div>
                   )}
                 </div>
@@ -1029,35 +1062,59 @@ function Navbar({ className }: { className?: string }) {
                       </svg>
                       Categorías de Productos
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <HoveredLink 
-                        href="/productos?categoria=Policarbonato Alveolar" 
-                        className="text-gray-700 hover:text-amber-600 hover:bg-white transition-all duration-300 py-2 px-3 rounded-lg text-sm font-medium touch-target"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Alveolar
-                      </HoveredLink>
-                      <HoveredLink 
-                        href="/productos?categoria=Policarbonato Ondulado" 
-                        className="text-gray-700 hover:text-amber-600 hover:bg-white transition-all duration-300 py-2 px-3 rounded-lg text-sm font-medium touch-target"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Ondulado
-                      </HoveredLink>
-                      <HoveredLink 
-                        href="/productos?categoria=Policarbonato Compacto" 
-                        className="text-gray-700 hover:text-amber-600 hover:bg-white transition-all duration-300 py-2 px-3 rounded-lg text-sm font-medium touch-target"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Compacto
-                      </HoveredLink>
-                      <HoveredLink 
-                        href="/productos?categoria=Rollos" 
-                        className="text-gray-700 hover:text-amber-600 hover:bg-white transition-all duration-300 py-2 px-3 rounded-lg text-sm font-medium touch-target"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Rollos
-                      </HoveredLink>
+                    <div className="space-y-3">
+                      {/* Policarbonatos */}
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
+                          Policarbonatos
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <HoveredLink 
+                            href="/productos?categoria=Policarbonato&tipo=Alveolar" 
+                            className="text-gray-700 hover:text-amber-600 hover:bg-white transition-all duration-300 py-2 px-3 rounded-lg text-sm font-medium touch-target"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            Alveolar
+                          </HoveredLink>
+                          <HoveredLink 
+                            href="/productos?categoria=Policarbonato&tipo=Ondulado" 
+                            className="text-gray-700 hover:text-amber-600 hover:bg-white transition-all duration-300 py-2 px-3 rounded-lg text-sm font-medium touch-target"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            Ondulado
+                          </HoveredLink>
+                          <HoveredLink 
+                            href="/productos?categoria=Policarbonato&tipo=Compacto" 
+                            className="text-gray-700 hover:text-amber-600 hover:bg-white transition-all duration-300 py-2 px-3 rounded-lg text-sm font-medium touch-target"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            Compacto
+                          </HoveredLink>
+                        </div>
+                      </div>
+                      
+                      {/* Perfiles Alveolares */}
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
+                          Perfiles Alveolares
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <HoveredLink 
+                            href="/productos?categoria=Perfiles Alveolar&tipo=Perfil U" 
+                            className="text-gray-700 hover:text-amber-600 hover:bg-white transition-all duration-300 py-2 px-3 rounded-lg text-sm font-medium touch-target"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            Perfil U
+                          </HoveredLink>
+                          <HoveredLink 
+                            href="/productos?categoria=Perfiles Alveolar&tipo=Perfil Clip" 
+                            className="text-gray-700 hover:text-amber-600 hover:bg-white transition-all duration-300 py-2 px-3 rounded-lg text-sm font-medium touch-target"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            Perfil Clip
+                          </HoveredLink>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   

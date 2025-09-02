@@ -84,6 +84,38 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
       }
     }).join(' x ');
   };
+
+  // Función para formatear una dimensión individual (ancho o largo)
+  const formatSingleDimension = (value: string) => {
+    if (!value || value === '0' || value === '0.0') return 'N/A';
+    
+    // Manejar valores con coma decimal (formato chileno)
+    const normalizedValue = value.toString().replace(',', '.');
+    const num = parseFloat(normalizedValue);
+    
+    if (isNaN(num) || num === 0) return 'N/A';
+    
+    // Los valores en la base de datos YA están en metros
+    // Decidir la mejor unidad para mostrar según el valor
+    
+    // Para valores muy pequeños (menos de 0.01 metros = 10mm)
+    if (num < 0.01) {
+      const mm = Math.round(num * 1000);
+      return `${mm} mm`;
+    } 
+    // Para valores entre 0.01 y 0.99 metros, mostrar en centímetros para mayor claridad
+    else if (num < 1) {
+      const cm = Math.round(num * 100);
+      return `${cm} cm`;
+    }
+    // Para valores de 1 metro o más, mostrar en metros
+    else {
+      // Si es un número entero, mostrarlo sin decimales
+      // Si tiene decimales, usar formato chileno con coma
+      const formatted = num % 1 === 0 ? num.toFixed(0) : num.toFixed(2).replace('.', ',');
+      return `${formatted} mts`;
+    }
+  };
   
   // Estados para las selecciones del usuario
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(
@@ -104,6 +136,8 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
   const [selectedColor, setSelectedColor] = useState<string>(productGroup.variantes?.[0]?.color || '');
   const [selectedEspesor, setSelectedEspesor] = useState<string>(productGroup.variantes?.[0]?.espesor || '');
   const [selectedDimension, setSelectedDimension] = useState<string>(productGroup.variantes?.[0]?.dimensiones || '');
+  const [selectedAncho, setSelectedAncho] = useState<string>(productGroup.variantes?.[0]?.ancho || '');
+  const [selectedLargo, setSelectedLargo] = useState<string>(productGroup.variantes?.[0]?.largo || '');
 
   // Función para limpiar valor de espesor (quitar mm si ya lo tiene)
   const cleanEspesorValue = (espesor: string) => {
@@ -205,10 +239,10 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
         especificaciones: [
           `Código: ${selectedVariant.codigo}`,
           `Espesor: ${selectedVariant.espesor}`,
-          `Dimensiones: ${selectedVariant.dimensiones}`,
+          ...(selectedAncho ? [`Ancho: ${formatSingleDimension(selectedAncho)}`] : []),
+          ...(selectedLargo ? [`Largo: ${formatSingleDimension(selectedLargo)}`] : []),
           `Color: ${selectedVariant.color}`,
           `Protección UV: ${selectedVariant.uv_protection ? 'Sí' : 'No'}`,
-          `Garantía: ${selectedVariant.garantia}`,
           ...(selectedDispatchDate ? [`Fecha de despacho: ${createDateFromISOString(selectedDispatchDate).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}`] : [])
         ]
       };
@@ -222,13 +256,11 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
   const uniqueColors = productGroup.colores || [];
   const uniqueThicknesses = productGroup.espesores || [];
   const uniqueDimensions = productGroup.dimensiones || [];
+  
+  // Obtener anchos y largos únicos desde las variantes
+  const uniqueAnchos = [...new Set(productGroup.variantes?.map(v => v.ancho).filter(Boolean))];
+  const uniqueLargos = [...new Set(productGroup.variantes?.map(v => v.largo).filter(Boolean))];
 
-  // DEBUG: Verificar qué valores de espesor llegan
-  console.log('DEBUG - Espesores únicos:', uniqueThicknesses);
-  console.log('DEBUG - Espesor seleccionado:', selectedEspesor);
-  console.log('DEBUG - Primera variante espesor:', productGroup.variantes?.[0]?.espesor);
-  console.log('DEBUG - Imagen del grupo:', productGroup.imagen);
-  console.log('DEBUG - Imagen del selectedVariant:', selectedVariant.imagen);
 
   // Filtrado dinámico: obtener dimensiones disponibles para el espesor seleccionado
   const getAvailableDimensionsForThickness = (thickness: string) => {
@@ -275,12 +307,13 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
     return [...new Set(availableDimensions)] || [];
   };
 
-  // Función para encontrar variante compatible
-  const findVariant = (color: string, espesor: string, dimension: string) => {
+  // Función para encontrar variante compatible (actualizada para ancho y largo)
+  const findVariant = (color: string, espesor: string, ancho: string, largo: string) => {
     return productGroup.variantes?.find(v => 
       v.color === color && 
       v.espesor === espesor && 
-      v.dimensiones === dimension
+      v.ancho === ancho &&
+      v.largo === largo
     ) || selectedVariant;
   };
 
@@ -288,17 +321,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
     
-    // Verificar si la dimensión actual sigue siendo válida con el nuevo color
-    const availableDimensions = getAvailableDimensionsForColor(color);
-    let newDimension = selectedDimension;
-    
-    // Si la dimensión actual no está disponible con este color, seleccionar la primera disponible
-    if (!availableDimensions.includes(selectedDimension)) {
-      newDimension = availableDimensions[0] || '';
-      setSelectedDimension(newDimension);
-    }
-    
-    const newVariant = findVariant(color, selectedEspesor, newDimension);
+    const newVariant = findVariant(color, selectedEspesor, selectedAncho, selectedLargo);
     setSelectedVariant(newVariant);
     
     // Actualizar cantidad si el nuevo tipo requiere cantidad mínima diferente
@@ -312,17 +335,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
   const handleEspesorChange = (espesor: string) => {
     setSelectedEspesor(espesor);
     
-    // Verificar si la dimensión actual sigue siendo válida con el nuevo espesor
-    const availableDimensions = getAvailableDimensionsForThickness(espesor);
-    let newDimension = selectedDimension;
-    
-    // Si la dimensión actual no está disponible con este espesor, seleccionar la primera disponible
-    if (!availableDimensions.includes(selectedDimension)) {
-      newDimension = availableDimensions[0] || '';
-      setSelectedDimension(newDimension);
-    }
-    
-    const newVariant = findVariant(selectedColor, espesor, newDimension);
+    const newVariant = findVariant(selectedColor, espesor, selectedAncho, selectedLargo);
     setSelectedVariant(newVariant);
     
     // Actualizar cantidad si el nuevo tipo requiere cantidad mínima diferente
@@ -333,17 +346,6 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
     }
   };
 
-  const handleDimensionChange = (dimension: string) => {
-    setSelectedDimension(dimension);
-    const newVariant = findVariant(selectedColor, selectedEspesor, dimension);
-    setSelectedVariant(newVariant);
-    // Actualizar cantidad si el nuevo tipo requiere cantidad mínima diferente
-    const isCompacto = productGroup.nombre?.includes('Compacto') || newVariant.codigo?.startsWith('517');
-    const newMinQuantity = isCompacto ? 1 : 10;
-    if (quantity < newMinQuantity) {
-      setQuantity(newMinQuantity);
-    }
-  };
 
   return (
     <div className={`bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden ${className} flex flex-col product-card-mobile product-card-mobile-md product-card-tablet`}>
@@ -353,7 +355,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
           className="bg-gray-100 rounded-xl h-48 mb-3 overflow-hidden product-image img-mobile cursor-pointer hover:scale-105 transition-transform duration-200"
           onClick={() => router.push(`/productos/${productGroup.id}`)}
         >
-          {/* Función para obtener la imagen correcta */}
+          {/* Función para obtener la imagen correcta - Separación Policarbonato vs Perfiles */}
           {(() => {
             let imagenFinal = selectedVariant.imagen || productGroup.imagen;
             
@@ -361,20 +363,42 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
             if (imagenFinal && (
               imagenFinal.includes('ondulado.webp') ||
               imagenFinal.includes('/Policarnato Ondulado/') ||
-              !imagenFinal.includes('policarbonato_')
+              (!imagenFinal.includes('policarbonato_') && !imagenFinal.includes('perfil_'))
             )) {
               // Ruta problemática detectada, usar fallback
               imagenFinal = null;
             }
             
             // Si no hay imagen válida, asignar imagen por defecto según el tipo
-            if (!imagenFinal && productGroup.nombre) {
-              if (productGroup.nombre.includes('Ondulado')) {
-                imagenFinal = "/assets/images/Productos/Policarnato Ondulado/policarbonato_ondulado_opal_perspectiva.webp";
-              } else if (productGroup.nombre.includes('Alveolar')) {
-                imagenFinal = "/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar.webp";
-              } else if (productGroup.nombre.includes('Compacto')) {
-                imagenFinal = "/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto.webp";
+            if (!imagenFinal) {
+              // PERFILES - Nueva categoría con imágenes distintas
+              if (productGroup.categoria === 'Perfiles Alveolar' || 
+                  productGroup.nombre?.includes('Perfil')) {
+                if (productGroup.nombre?.includes('Perfil U') || selectedVariant.nombre?.includes('Perfil U')) {
+                  imagenFinal = "/assets/images/productos/perfiles/perfil-u-policarbonato.webp";
+                } else if (productGroup.nombre?.includes('Perfil H') || selectedVariant.nombre?.includes('Perfil H')) {
+                  imagenFinal = "/assets/images/productos/perfiles/perfil-h-policarbonato.webp";
+                } else if (productGroup.nombre?.includes('Perfil Clip') || selectedVariant.nombre?.includes('Perfil Clip')) {
+                  imagenFinal = "/assets/images/productos/perfiles/perfil-clip-policarbonato.webp";
+                } else if (productGroup.nombre?.includes('Perfil Alveolar') || selectedVariant.nombre?.includes('Perfil Alveolar')) {
+                  imagenFinal = "/assets/images/productos/perfiles/perfil-alveolar-policarbonato.webp";
+                } else {
+                  // Imagen genérica de perfiles
+                  imagenFinal = "/assets/images/productos/perfiles/perfiles-policarbonato-generic.webp";
+                }
+              } 
+              // POLICARBONATOS - Mantener imágenes existentes
+              else if (productGroup.categoria === 'Policarbonato' || productGroup.nombre) {
+                if (productGroup.nombre?.includes('Ondulado')) {
+                  imagenFinal = "/assets/images/Productos/Policarnato Ondulado/policarbonato_ondulado_opal_perspectiva.webp";
+                } else if (productGroup.nombre?.includes('Alveolar')) {
+                  imagenFinal = "/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar.webp";
+                } else if (productGroup.nombre?.includes('Compacto')) {
+                  imagenFinal = "/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto.webp";
+                } else {
+                  // Imagen genérica de policarbonato
+                  imagenFinal = "/assets/images/productos/policarbonato/policarbonato-generic.webp";
+                }
               }
             }
             
@@ -443,11 +467,12 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
           {productGroup.nombre}
         </h3>
         
-        <div className="mb-3 h-10 flex items-start">
-          <p className="text-gray-600 text-sm line-clamp-2">
+        <div className="mb-3 flex items-start">
+          <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
             {productGroup.descripcion}
           </p>
         </div>
+        
 
         {/* SKU sutilmente debajo de la descripción */}
         <div className="mb-3">
@@ -466,13 +491,21 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
               <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">IVA incluido</span>
             </div>
             
-            {/* Stock y Botón de despacho en la misma línea */}
+            {/* Información de stock mejorada */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center text-green-600">
-                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span className="font-medium text-sm">Stock: {selectedVariant.stock || productGroup.stock_total}</span>
+              <div className="flex items-center space-x-2">
+                <div className={`flex items-center ${
+                  (selectedVariant?.stock || productGroup.stock_total) > 10 ? 'text-green-600' : 
+                  (selectedVariant?.stock || productGroup.stock_total) > 0 ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${
+                    (selectedVariant?.stock || productGroup.stock_total) > 10 ? 'bg-green-500' : 
+                    (selectedVariant?.stock || productGroup.stock_total) > 0 ? 'bg-yellow-500' : 'bg-red-500'
+                  }`}></div>
+                  <span className="font-medium text-sm">
+                    Stock disponible: {selectedVariant?.stock || productGroup.stock_total}
+                  </span>
+                </div>
               </div>
               
               <button
@@ -495,6 +528,8 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
             </div>
           </div>
         </div>
+
+
         {/* Configuración de Producto */}
         <div className="space-y-4">
           {/* Selección de Color */}
@@ -522,7 +557,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
           )}
 
           {/* Selección de Espesor */}
-          {uniqueThicknesses.length > 1 && (
+          {uniqueThicknesses.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Espesor: <span className="text-amber-600 font-bold">{cleanEspesorValue(selectedEspesor)}mm</span>
@@ -545,24 +580,48 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
             </div>
           )}
 
-          {/* Selección de Dimensiones */}
-          {getFilteredDimensions().length > 1 && (
-            <div className="mb-8">
+          {/* Selección de Ancho */}
+          {uniqueAnchos.length > 0 && (
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Dimensiones: <span className="text-amber-600 font-bold">{formatDimensionWithUnit(selectedDimension)}</span>
+                Ancho: <span className="text-amber-600 font-bold">{formatSingleDimension(selectedAncho)}</span>
               </label>
               <div className="flex flex-wrap gap-2">
-                {getFilteredDimensions().map((dimension) => (
+                {uniqueAnchos.map((ancho) => (
                   <button
-                    key={dimension}
-                    onClick={() => handleDimensionChange(dimension)}
+                    key={ancho}
+                    onClick={() => setSelectedAncho(ancho)}
                     className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
-                      selectedDimension === dimension 
+                      selectedAncho === ancho 
                         ? 'border-amber-400 bg-amber-100 text-amber-800 shadow-md ring-2 ring-amber-200' 
                         : 'border-gray-200 bg-white hover:border-amber-300 hover:bg-amber-50 text-gray-700'
                     }`}
                   >
-                    {formatDimensionWithUnit(dimension)}
+                    {formatSingleDimension(ancho)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Selección de Largo */}
+          {uniqueLargos.length > 0 && (
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Largo: <span className="text-amber-600 font-bold">{formatSingleDimension(selectedLargo)}</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {uniqueLargos.map((largo) => (
+                  <button
+                    key={largo}
+                    onClick={() => setSelectedLargo(largo)}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
+                      selectedLargo === largo 
+                        ? 'border-amber-400 bg-amber-100 text-amber-800 shadow-md ring-2 ring-amber-200' 
+                        : 'border-gray-200 bg-white hover:border-amber-300 hover:bg-amber-50 text-gray-700'
+                    }`}
+                  >
+                    {formatSingleDimension(largo)}
                   </button>
                 ))}
               </div>

@@ -601,14 +601,14 @@ export default function AdminDashboard() {
     
     // Reglas de detección de unidades basadas en el valor:
     // CORRECCIÓN PARA PERFILES: 0,055 = 55mm y 0,02 = 20mm (son milímetros)
-    if (num < 0.1) {
-      // Valores muy pequeños como 0,055 y 0,02 son milímetros
+    if (num < 0.01) {
+      // Valores muy pequeños como 0,005 son milímetros
       const valorMm = (num * 1000).toFixed(0);
       return { valor: valorMm, unidad: 'mm' };
     } else if (num < 1.0) {
-      // Valores menores a 1 pero mayores a 0.1 son metros decimales
-      const valorFormateado = num.toString().replace('.', ',');
-      return { valor: valorFormateado, unidad: 'mts' };
+      // Valores como 0.81 son centímetros (0.81m = 81cm)
+      const valorCm = (num * 100).toFixed(0);
+      return { valor: valorCm, unidad: 'cm' };
     } else if (num <= 10.0) {
       // Son METROS - mostrar con formato chileno y dos decimales
       const valorFormateado = num.toFixed(2).replace('.', ',');
@@ -1537,6 +1537,8 @@ export default function AdminDashboard() {
     const [selectedProductInv, setSelectedProductInv] = useState<any>(null);
     const [showDetailModalInv, setShowDetailModalInv] = useState(false);
     const [updatingVisibilityInv, setUpdatingVisibilityInv] = useState<string | null>(null);
+    const [publishingProduct, setPublishingProduct] = useState<string | null>(null);
+    const [publishingAll, setPublishingAll] = useState(false);
 
     // Guardar filtros en localStorage cuando cambien
     useEffect(() => {
@@ -2069,6 +2071,102 @@ export default function AdminDashboard() {
       } finally {
         setUpdatingVisibilityInv(null);
       }
+    };
+
+    // Función para publicar un producto individual
+    const handlePublishProduct = async (codigo: string) => {
+      setPublishingProduct(codigo);
+      
+      try {
+        const response = await fetch('/api/admin/publish-product', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codigo })
+        });
+
+        if (response.ok) {
+          setSyncStatus(`✅ Producto ${codigo} publicado correctamente`);
+          setTimeout(() => setSyncStatus(''), 3000);
+        } else {
+          const errorData = await response.json();
+          setSyncStatus(`❌ Error publicando: ${errorData.error || 'Error desconocido'}`);
+          setTimeout(() => setSyncStatus(''), 3000);
+        }
+      } catch (error) {
+        console.error('Error publicando producto:', error);
+        setSyncStatus('❌ Error publicando producto');
+        setTimeout(() => setSyncStatus(''), 3000);
+      } finally {
+        setPublishingProduct(null);
+      }
+    };
+
+    // Función para publicar todos los productos visibles
+    const handlePublishAll = async () => {
+      setPublishingAll(true);
+      
+      try {
+        const response = await fetch('/api/admin/publish-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setSyncStatus(`✅ ${result.count || 0} productos publicados correctamente`);
+          setTimeout(() => setSyncStatus(''), 3000);
+        } else {
+          const errorData = await response.json();
+          setSyncStatus(`❌ Error publicando: ${errorData.error || 'Error desconocido'}`);
+          setTimeout(() => setSyncStatus(''), 3000);
+        }
+      } catch (error) {
+        console.error('Error publicando productos:', error);
+        setSyncStatus('❌ Error publicando productos');
+        setTimeout(() => setSyncStatus(''), 3000);
+      } finally {
+        setPublishingAll(false);
+      }
+    };
+
+    // Función para verificar si un producto coincide con los filtros actuales
+    const matchesFiltersInv = (variant: any) => {
+      // Filtro de búsqueda
+      if (searchTermInv && !variant.codigo.toLowerCase().includes(searchTermInv.toLowerCase()) &&
+          !variant.nombre.toLowerCase().includes(searchTermInv.toLowerCase()) &&
+          !variant.color.toLowerCase().includes(searchTermInv.toLowerCase())) {
+        return false;
+      }
+
+      // Filtro de categoría
+      if (selectedCategoryInv !== 'all' && variant.categoria !== selectedCategoryInv) {
+        return false;
+      }
+
+      // Filtro de subtipo (para Policarbonato)
+      if (selectedCategoryInv === 'Policarbonato' && selectedSubtipoInv !== 'all' && variant.tipo !== selectedSubtipoInv) {
+        return false;
+      }
+
+      // Filtro de proveedor
+      if (selectedProveedorInv !== 'all' && variant.proveedor !== selectedProveedorInv) {
+        return false;
+      }
+
+      // Filtro de visibilidad
+      if (selectedVisibilityInv === 'visible' && !variant.disponible_en_web) {
+        return false;
+      }
+      if (selectedVisibilityInv === 'oculto' && variant.disponible_en_web) {
+        return false;
+      }
+
+      // Filtro de stock bajo
+      if (showOnlyLowStockInv && (variant.stock || 0) >= 10) {
+        return false;
+      }
+
+      return true;
     };
 
     const openProductDetailInv = (variant: any) => {
@@ -2954,6 +3052,25 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 711.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
                       </svg>
                       <span>Hacer Ocultos</span>
+                    </button>
+                    
+                    {/* Botón Publicar Todo */}
+                    <button
+                      onClick={handlePublishAll}
+                      disabled={publishingAll}
+                      className="flex items-center space-x-1 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all duration-200 text-xs font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Publicar todos los productos visibles en la web"
+                    >
+                      {publishingAll ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                      )}
+                      <span>{publishingAll ? 'Publicando...' : 'Publicar Todo'}</span>
                     </button>
                   </div>
                   {/* Auto-sync selector - Solo icono y selector */}
@@ -3959,6 +4076,38 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                         }
                       >
                         {selectedProductInv.disponible_en_web ? 'Ocultar de la Web' : 'Mostrar en la Web'}
+                      </button>
+                      
+                      {/* Botón de Publicar */}
+                      <button
+                        onClick={() => handlePublishProduct(selectedProductInv.codigo)}
+                        disabled={publishingProduct === selectedProductInv.codigo || !selectedProductInv.disponible_en_web}
+                        className={`px-8 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                          !selectedProductInv.disponible_en_web
+                            ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
+                        } ${publishingProduct === selectedProductInv.codigo ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={
+                          !selectedProductInv.disponible_en_web 
+                            ? 'El producto debe estar visible para publicar'
+                            : 'Publicar este producto en la web'
+                        }
+                      >
+                        {publishingProduct === selectedProductInv.codigo ? (
+                          <>
+                            <svg className="w-5 h-5 animate-spin inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Publicando...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            Publicar Producto
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -6178,14 +6327,31 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                   <div className="text-xs text-yellow-500">Casos abiertos</div>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-sm text-blue-600 font-medium">Garantías Activas</div>
-                  <div className="text-2xl font-bold text-blue-900">{productosDisponiblesWeb}</div>
-                  <div className="text-xs text-blue-500">10 años c/u</div>
+                  <div className="text-sm text-blue-600 font-medium">Stock Disponible</div>
+                  <div className="text-2xl font-bold text-blue-900">{stockMetrics.totalStock.toLocaleString()}</div>
+                  <div className="text-xs text-blue-500">unidades en inventario</div>
                 </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="text-sm text-purple-600 font-medium">Recompras</div>
-                  <div className="text-2xl font-bold text-purple-900">0%</div>
-                  <div className="text-xs text-purple-500">Clientes recurrentes</div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="text-sm text-green-600 font-medium">Próximo Despacho</div>
+                  <div className="text-2xl font-bold text-green-900">
+                    {(() => {
+                      const today = new Date();
+                      const dayOfWeek = today.getDay(); // 0=Domingo, 4=Jueves
+                      let daysUntilThursday;
+                      if (dayOfWeek <= 2) { // Domingo, Lunes, Martes
+                        daysUntilThursday = 4 - dayOfWeek;
+                      } else { // Miércoles en adelante
+                        daysUntilThursday = 11 - dayOfWeek; // Próximo jueves
+                      }
+                      const nextThursday = new Date(today);
+                      nextThursday.setDate(today.getDate() + daysUntilThursday);
+                      return nextThursday.toLocaleDateString('es-CL', { 
+                        day: 'numeric',
+                        month: 'short'
+                      });
+                    })()}
+                  </div>
+                  <div className="text-xs text-green-500">jueves de despacho</div>
                 </div>
               </div>
 
