@@ -23,19 +23,19 @@ function getDefaultImage(tipo: string, color?: string): string {
       'default': '/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto.webp'
     },
     'Perfil U': {
-      'default': '/assets/images/productos/perfiles/Perfil%20U.webp'
+      'default': '/assets/images/Productos/Perfiles/Perfil_U.webp'
     },
     'Perfil H': {
-      'default': '/assets/images/productos/perfiles/perfil-h-policarbonato.webp'
+      'default': '/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp'
     },
     'Perfil Clip': {
-      'default': '/assets/images/productos/perfiles/Perfil%20Clip.webp'
+      'default': '/assets/images/Productos/Perfiles/Perfil_Clip.webp'
     },
     'Perfil Clip Plano': {
       'default': '/assets/images/Productos/Perfiles/Perfil_Clip.webp'
     },
     'Perfil Alveolar': {
-      'default': '/assets/images/productos/perfiles/perfil-alveolar-policarbonato.webp'
+      'default': '/assets/images/Productos/Perfiles/perfil-clip-policarbonato.webp'
     }
   };
 
@@ -453,8 +453,8 @@ export async function GET(request: NextRequest) {
         stock_disponible: producto.stock > 10 ? 'Disponible' : producto.stock > 0 ? 'Stock limitado' : 'Sin stock',
         
         // INFORMACIÓN ADICIONAL DEL PRODUCTO
-        imagen: producto.ruta_imagen || getDefaultImage(categoriaCompleta, producto.color),
-        ruta_imagen: producto.ruta_imagen,
+        imagen: (producto.ruta_imagen || getDefaultImage(categoriaCompleta, producto.color))?.replace('/Productos/', '/productos/'),
+        ruta_imagen: producto.ruta_imagen?.replace('/Productos/', '/productos/'),
         garantia: "10 años",
         uv_protection: true,
         
@@ -476,7 +476,7 @@ export async function GET(request: NextRequest) {
       
       // Actualizar imagen del grupo con la primera imagen válida encontrada
       if (producto.ruta_imagen && !productoExistente.imagen_principal) {
-        productoExistente.imagen_principal = producto.ruta_imagen;
+        productoExistente.imagen_principal = producto.ruta_imagen.replace('/Productos/', '/productos/');
       }
       
       // Actualizar imagen por defecto si no hay imagen principal

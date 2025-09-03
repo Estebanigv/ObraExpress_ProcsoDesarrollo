@@ -7,6 +7,7 @@ import { TechnicalSpecsModal } from '@/components/technical-specs-modal';
 import { getProductSpecifications } from '@/utils/product-specifications';
 import DispatchCalendarModal from '@/components/dispatch-calendar-modal';
 import { formatCurrency } from '@/utils/format-currency';
+import { getProductDimensionInfo, calculateProductArea, formatDimensionForDisplay } from '@/utils/dimension-pricing';
 
 interface ProductVariant {
   codigo: string;
@@ -139,6 +140,26 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(
     productGroup.variantes?.[0] || {} as ProductVariant
   );
+  
+  // Estados para filtros dinámicos
+  const [selectedColor, setSelectedColor] = useState<string>(productGroup.variantes?.[0]?.color || '');
+  const [selectedEspesor, setSelectedEspesor] = useState<string>(productGroup.variantes?.[0]?.espesor || '');
+  const [selectedDimension, setSelectedDimension] = useState<string>(productGroup.variantes?.[0]?.dimensiones || '');
+  const [selectedAncho, setSelectedAncho] = useState<string>(productGroup.variantes?.[0]?.ancho || '');
+  const [selectedLargo, setSelectedLargo] = useState<string>(productGroup.variantes?.[0]?.largo || '');
+
+  // Calcular precio ajustado por dimensiones
+  const dimensionInfo = getProductDimensionInfo(
+    productGroup.categoria || '',
+    productGroup.tipo || '',
+    selectedAncho || selectedVariant.ancho || '',
+    selectedLargo || selectedVariant.largo || '',
+    selectedVariant.precio_con_iva || 0
+  );
+
+  // Precio final que se muestra (puede incluir cálculo por área)
+  const finalPrice = dimensionInfo.finalPrice;
+  
   // Determinar cantidad mínima e inicial basada en el tipo de producto
   const getMinQuantity = () => {
     // Detectar si es compacto por el nombre del producto o el código
@@ -149,13 +170,6 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
   };
 
   const [quantity, setQuantity] = useState(getMinQuantity());
-  
-  // Estados para filtros dinámicos
-  const [selectedColor, setSelectedColor] = useState<string>(productGroup.variantes?.[0]?.color || '');
-  const [selectedEspesor, setSelectedEspesor] = useState<string>(productGroup.variantes?.[0]?.espesor || '');
-  const [selectedDimension, setSelectedDimension] = useState<string>(productGroup.variantes?.[0]?.dimensiones || '');
-  const [selectedAncho, setSelectedAncho] = useState<string>(productGroup.variantes?.[0]?.ancho || '');
-  const [selectedLargo, setSelectedLargo] = useState<string>(productGroup.variantes?.[0]?.largo || '');
 
   // Función para limpiar valor de espesor (quitar mm si ya lo tiene)
   const cleanEspesorValue = (espesor: string) => {
@@ -250,8 +264,8 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
         nombre: selectedVariant.nombre,
         descripcion: selectedVariant.descripcion,
         cantidad: quantity,
-        precioUnitario: selectedVariant.precio_con_iva,
-        total: selectedVariant.precio_con_iva * quantity,
+        precioUnitario: finalPrice, // Usar precio calculado por área
+        total: finalPrice * quantity,
         imagen: productGroup.imagen,
         fechaDespacho: selectedDispatchDate ? createDateFromISOString(selectedDispatchDate) : undefined,
         especificaciones: [
@@ -259,6 +273,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
           `Espesor: ${selectedVariant.espesor}`,
           ...(selectedAncho ? [`Ancho: ${formatSingleDimension(selectedAncho, 'ancho')}`] : []),
           ...(selectedLargo ? [`Largo: ${formatSingleDimension(selectedLargo, 'largo')}`] : []),
+          ...(dimensionInfo.area > 0 ? [`Área: ${dimensionInfo.area.toFixed(2)} m²`] : []),
           `Color: ${selectedVariant.color}`,
           `Protección UV: ${selectedVariant.uv_protection ? 'Sí' : 'No'}`,
           ...(selectedDispatchDate ? [`Fecha de despacho: ${createDateFromISOString(selectedDispatchDate).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}`] : [])
@@ -362,6 +377,20 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
     if (quantity < newMinQuantity) {
       setQuantity(newMinQuantity);
     }
+  };
+
+  const handleAnchoChange = (ancho: string) => {
+    setSelectedAncho(ancho);
+    
+    const newVariant = findVariant(selectedColor, selectedEspesor, ancho, selectedLargo);
+    setSelectedVariant(newVariant);
+  };
+
+  const handleLargoChange = (largo: string) => {
+    setSelectedLargo(largo);
+    
+    const newVariant = findVariant(selectedColor, selectedEspesor, selectedAncho, largo);
+    setSelectedVariant(newVariant);
   };
 
 
@@ -504,10 +533,29 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
           <div className="bg-white border border-gray-200 rounded-lg p-3">
             <div className="flex items-baseline gap-2 mb-2">
               <div className="text-lg font-bold text-gray-900">
-                ${formatCurrency(selectedVariant.precio_con_iva || productGroup.precio_desde)}
+                ${formatCurrency(finalPrice)}
               </div>
               <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">IVA incluido</span>
             </div>
+            
+            {/* Información de área y cálculo si es relevante */}
+            {dimensionInfo.area > 0 && (
+              <div className="text-xs text-gray-500 mb-2">
+                <div className="flex items-center justify-between">
+                  <span>Área: {dimensionInfo.area.toFixed(2)} m²</span>
+                  {dimensionInfo.pricePerSqMeter > 0 && (
+                    <span>${formatCurrency(dimensionInfo.pricePerSqMeter)}/m²</span>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Mostrar advertencia si las dimensiones no son válidas */}
+            {!dimensionInfo.isValid && dimensionInfo.message && (
+              <div className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-md mb-2">
+                ⚠️ {dimensionInfo.message}
+              </div>
+            )}
             
             {/* Información de stock mejorada */}
             <div className="flex items-center justify-between">
@@ -608,7 +656,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
                 {uniqueAnchos.map((ancho) => (
                   <button
                     key={ancho}
-                    onClick={() => setSelectedAncho(ancho)}
+                    onClick={() => handleAnchoChange(ancho)}
                     className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
                       selectedAncho === ancho 
                         ? 'border-amber-400 bg-amber-100 text-amber-800 shadow-md ring-2 ring-amber-200' 
@@ -632,7 +680,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
                 {uniqueLargos.map((largo) => (
                   <button
                     key={largo}
-                    onClick={() => setSelectedLargo(largo)}
+                    onClick={() => handleLargoChange(largo)}
                     className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
                       selectedLargo === largo 
                         ? 'border-amber-400 bg-amber-100 text-amber-800 shadow-md ring-2 ring-amber-200' 
@@ -720,7 +768,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
           <div className="text-right">
             <div className="text-sm text-gray-600">Total:</div>
             <div className="text-xl font-bold text-green-600">
-              ${formatCurrency((selectedVariant.precio_con_iva || 0) * quantity)}
+              ${formatCurrency(finalPrice * quantity)}
             </div>
           </div>
         </div>
