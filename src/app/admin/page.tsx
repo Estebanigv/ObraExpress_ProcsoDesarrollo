@@ -2004,8 +2004,13 @@ export default function AdminDashboard() {
           if (!hasValidSKU) return false;
           
           // FILTRO AUTOMÁTICO: Ocultar productos con stock menor a 9 unidades
-          const stock = parseInt(v.stock) || 0;
-          if (stock < 9) return false;
+          try {
+            const stock = parseInt(v.stock) || 0;
+            if (stock < 9) return false;
+          } catch (error) {
+            console.warn('Error al evaluar stock para producto:', v.codigo, error);
+            // Si hay error, permitir que el producto pase para evitar fallos completos
+          }
         
         const matchesSearch = searchTermInv === '' || 
           v.nombre.toLowerCase().includes(searchTermInv.toLowerCase()) ||
