@@ -583,8 +583,8 @@ export default function AdminDashboard() {
   const calcularCostoProveedor = (precioNeto: number) => Math.round(precioNeto * 0.54);
   const calcularGanancia = (precioNeto: number) => precioNeto - calcularCostoProveedor(precioNeto);
   
-  // Función para detectar y mostrar unidades correctamente SIN CONVERTIR valores
-  const detectarUnidadDimension = (valor: string | number) => {
+  // Función para detectar y mostrar unidades correctamente, especial para perfiles
+  const detectarUnidadDimension = (valor: string | number, tipo: string = '', categoria: string = '', campo: string = '') => {
     if (!valor || valor === '' || valor === 'N/A') {
       return { valor: 'N/A', unidad: '' };
     }
@@ -599,8 +599,33 @@ export default function AdminDashboard() {
       return { valor: 'N/A', unidad: '' };
     }
     
-    // Reglas de detección de unidades basadas en el valor:
-    // CORRECCIÓN PARA PERFILES: 0,055 = 55mm y 0,02 = 20mm (son milímetros)
+    // LÓGICA ESPECIAL PARA PERFILES
+    const esPerfilCategoria = categoria?.toLowerCase().includes('perfil') || tipo?.toLowerCase().includes('perfil');
+    
+    if (esPerfilCategoria) {
+      // Para ANCHOS de perfiles: corregir valores específicos de Google Sheets
+      if (campo === 'ancho' || campo === 'width') {
+        // CORRECCIÓN ESPECÍFICA: Google Sheets envía 20 y 55 en lugar de 0.02 y 0.055
+        if (num === 20) {
+          return { valor: '0,02', unidad: 'mm' };
+        }
+        if (num === 55) {
+          return { valor: '0,055', unidad: 'mm' };
+        }
+        // Para otros valores, formatear normalmente
+        const valorFormateado = num < 1 ? num.toString().replace('.', ',') : num.toString();
+        return { valor: valorFormateado, unidad: 'mm' };
+      }
+      
+      // Para LARGOS de perfiles: son metros reales (1, 2, 5, 8, 11)
+      if (campo === 'largo' || campo === 'length') {
+        // Formatear como metros con decimales si los tiene
+        const valorFormateado = num % 1 === 0 ? num.toString() : num.toFixed(1).replace('.', ',');
+        return { valor: valorFormateado, unidad: 'mts' };
+      }
+    }
+    
+    // LÓGICA ORIGINAL PARA POLICARBONATOS Y OTROS
     if (num < 0.01) {
       // Valores muy pequeños como 0,005 son milímetros
       const valorMm = (num * 1000).toFixed(0);
@@ -1539,6 +1564,9 @@ export default function AdminDashboard() {
     const [updatingVisibilityInv, setUpdatingVisibilityInv] = useState<string | null>(null);
     const [publishingProduct, setPublishingProduct] = useState<string | null>(null);
     const [publishingAll, setPublishingAll] = useState(false);
+    const [modalProtected, setModalProtected] = useState(false); // Proteger el modal de cierres automáticos
+    const [imageUploadInProgress, setImageUploadInProgress] = useState(false);
+    const modalForceOpenRef = useRef(false);
 
     // Guardar filtros en localStorage cuando cambien
     useEffect(() => {
@@ -1744,82 +1772,92 @@ export default function AdminDashboard() {
       }
     };
 
+    // Función para encontrar un producto por código
+    const findProductByCode = (codigo: string) => {
+      if (!productosData?.productos_por_categoria) return null;
+      
+      for (const categoria in productosData.productos_por_categoria) {
+        const productos = productosData.productos_por_categoria[categoria];
+        for (const producto of productos) {
+          for (const variante of producto.variantes) {
+            if (variante.codigo === codigo) {
+              return variante;
+            }
+          }
+        }
+      }
+      return null;
+    };
+
     // Función para manejar carga de imagen para un producto específico desde el modal de detalles
     const handleImageUploadForProduct = async (codigo: string, file: File) => {
-      if (!file || !codigo) return;
-
-      setUpdatingVisibilityInv(codigo); // Usar como indicador de carga
+      if (!codigo || !file) return;
+      
+      console.log(`📤 Iniciando upload de imagen para ${codigo}`);
+      setImageUploadInProgress(true);
+      modalForceOpenRef.current = true;
+      
+      // Crear una referencia fuerte al modal
+      const modalElement = document.querySelector('[role="dialog"]');
+      if (modalElement) {
+        modalElement.setAttribute('data-force-open', 'true');
+      }
       
       try {
+        // Buscar el producto para obtener información necesaria
+        const producto = findProductByCode(codigo);
+        if (!producto) {
+          alert('Producto no encontrado');
+          return;
+        }
+
         const formData = new FormData();
         formData.append('image', file);
         formData.append('codigo', codigo);
-        formData.append('categoria', selectedProductInv?.categoria || 'Policarbonato');
-        formData.append('tipo', selectedProductInv?.tipo || 'Producto');
+        formData.append('categoria', producto.categoria);
+        formData.append('tipo', producto.tipo);
+        formData.append('nombre', producto.nombre || '');
 
         const response = await fetch('/api/upload-image', {
           method: 'POST',
-          body: formData
+          body: formData,
         });
 
-        const result = await response.json();
+        if (!response.ok) {
+          throw new Error('Error al cargar la imagen');
+        }
 
+        const result = await response.json();
+        
         if (result.success) {
-          // Definir productos con imagen compartida
-          const productosConImagenCompartida = {
-            'Policarbonato': ['Ondulado', 'Alveolar', 'Compacto']
-            // Perfiles Alveolar usa imágenes individuales por SKU
-          };
-          
-          const tieneImagenCompartida = productosConImagenCompartida[selectedProductInv?.categoria]?.includes(selectedProductInv?.tipo);
-          
-          if (tieneImagenCompartida) {
-            setSyncStatus(`✅ Imagen cargada para TODOS los productos de ${selectedProductInv?.categoria} ${selectedProductInv?.tipo}`);
-          } else {
-            setSyncStatus('✅ Imagen cargada exitosamente');
-          }
-          
-          // Actualizar el producto seleccionado con la nueva imagen
+          // Actualizar solo el producto específico en el estado local
           setSelectedProductInv((prev: any) => prev ? {
             ...prev,
             tiene_imagen: true,
             ruta_imagen: result.imageUrl || result.rutaImagen
           } : null);
           
-          // Actualizar los datos principales
-          setProductosData((prevData: any) => {
-            if (!prevData) return prevData;
-            const newData = { ...prevData };
-            
-            Object.keys(newData.productos_por_categoria || {}).forEach(categoria => {
-              newData.productos_por_categoria[categoria].forEach((producto: any) => {
-                producto.variantes.forEach((v: any) => {
-                  if (tieneImagenCompartida) {
-                    // Si es un producto con imagen compartida, actualizar TODOS del mismo tipo
-                    if (v.categoria === selectedProductInv?.categoria && v.tipo === selectedProductInv?.tipo) {
-                      v.tiene_imagen = true;
-                      v.ruta_imagen = result.imageUrl || result.rutaImagen;
-                    }
-                  } else {
-                    // Para productos con imagen individual, actualizar solo el específico
-                    if (v.codigo === codigo) {
-                      v.tiene_imagen = true;
-                      v.ruta_imagen = result.imageUrl || result.rutaImagen;
-                    }
-                  }
-                });
-              });
-            });
-            return newData;
-          });
+          // Mostrar mensaje de éxito
+          console.log('✅ Imagen cargada exitosamente, modal mantenido abierto');
+          
         } else {
-          setSyncStatus(`❌ Error cargando imagen: ${result.error}`);
+          alert('Error al cargar la imagen: ' + (result.error || 'Error desconocido'));
         }
+        
       } catch (error) {
-        setSyncStatus('❌ Error cargando imagen');
         console.error('Error:', error);
+        alert('Error al cargar la imagen');
       } finally {
-        setUpdatingVisibilityInv(null);
+        setImageUploadInProgress(false);
+        
+        // Mantener la referencia de forzar abierto por un momento más
+        setTimeout(() => {
+          modalForceOpenRef.current = false;
+          const modalElement = document.querySelector('[role="dialog"]');
+          if (modalElement) {
+            modalElement.removeAttribute('data-force-open');
+          }
+        }, 1000);
       }
     };
 
@@ -2075,6 +2113,7 @@ export default function AdminDashboard() {
 
     // Función para publicar un producto individual
     const handlePublishProduct = async (codigo: string) => {
+      setModalProtected(true); // Proteger el modal durante la publicación
       setPublishingProduct(codigo);
       
       try {
@@ -2086,7 +2125,15 @@ export default function AdminDashboard() {
 
         if (response.ok) {
           setSyncStatus(`✅ Producto ${codigo} publicado correctamente`);
-          setTimeout(() => setSyncStatus(''), 3000);
+          
+          // Mantener el modal abierto y los datos del producto seleccionado intactos
+          console.log('✅ Producto publicado, manteniendo modal abierto');
+          
+          // Asegurar que el modal permanezca abierto después de publicar
+          setTimeout(() => {
+            setShowDetailModalInv(true);
+            setSyncStatus('');
+          }, 3000);
         } else {
           const errorData = await response.json();
           setSyncStatus(`❌ Error publicando: ${errorData.error || 'Error desconocido'}`);
@@ -2098,12 +2145,27 @@ export default function AdminDashboard() {
         setTimeout(() => setSyncStatus(''), 3000);
       } finally {
         setPublishingProduct(null);
+        
+        // Desactivar protección después de un delay
+        setTimeout(() => {
+          setModalProtected(false);
+        }, 1000);
+        
+        // NO cerrar el modal, mantenerlo abierto
       }
     };
 
     // Función para publicar todos los productos visibles
-    const handlePublishAll = async () => {
+    const handlePublishAll = async (e?: React.MouseEvent) => {
+      // Prevenir comportamientos por defecto que puedan causar scroll/recarga
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      console.log('🚀 Iniciando publicación masiva...');
       setPublishingAll(true);
+      setSyncStatus('🔄 Publicando todos los productos...');
       
       try {
         const response = await fetch('/api/admin/publish-all', {
@@ -2113,19 +2175,27 @@ export default function AdminDashboard() {
 
         if (response.ok) {
           const result = await response.json();
-          setSyncStatus(`✅ ${result.count || 0} productos publicados correctamente`);
-          setTimeout(() => setSyncStatus(''), 3000);
+          const count = result.count || 0;
+          console.log(`✅ Publicados ${count} productos correctamente`);
+          setSyncStatus(`✅ ${count} productos publicados y actualizados en la web`);
+          
+          // Mostrar mensaje de éxito más tiempo
+          setTimeout(() => {
+            setSyncStatus('');
+          }, 5000);
         } else {
           const errorData = await response.json();
+          console.error('Error en la respuesta:', errorData);
           setSyncStatus(`❌ Error publicando: ${errorData.error || 'Error desconocido'}`);
-          setTimeout(() => setSyncStatus(''), 3000);
+          setTimeout(() => setSyncStatus(''), 5000);
         }
       } catch (error) {
         console.error('Error publicando productos:', error);
-        setSyncStatus('❌ Error publicando productos');
-        setTimeout(() => setSyncStatus(''), 3000);
+        setSyncStatus('❌ Error de conexión al publicar productos');
+        setTimeout(() => setSyncStatus(''), 5000);
       } finally {
         setPublishingAll(false);
+        console.log('🏁 Publicación masiva completada');
       }
     };
 
@@ -2218,8 +2288,12 @@ export default function AdminDashboard() {
             navigateToProduct('next');
           } else if (event.key === 'Escape') {
             event.preventDefault();
-            setShowDetailModalInv(false);
-            setSelectedProductInv(null);
+            if (!imageUploadInProgress && !modalForceOpenRef.current) {
+              setShowDetailModalInv(false);
+              setSelectedProductInv(null);
+            } else {
+              console.log('🚫 Escape bloqueado durante upload');
+            }
           }
         }
       };
@@ -2297,8 +2371,8 @@ export default function AdminDashboard() {
           'Nombre': getProductBaseName(v.nombre, v),
           'Tipo': product.tipo || v.tipo || 'N/A',
           'Espesor milímetros': v.espesor,
-          'Ancho metros': v.ancho || parseFloat(v.dimensiones)?.toFixed(2) || 'N/A',
-          'Largo metros': v.largo || 'N/A',
+          'Ancho': v.ancho || parseFloat(v.dimensiones)?.toFixed(2) || 'N/A',
+          'Largo': v.largo || 'N/A',
           'Color': v.color,
           'Precio Neto': v.precio_neto,
           'Proveedor': v.proveedor,
@@ -3056,7 +3130,8 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                     
                     {/* Botón Publicar Todo */}
                     <button
-                      onClick={handlePublishAll}
+                      type="button"
+                      onClick={(e) => handlePublishAll(e)}
                       disabled={publishingAll}
                       className="flex items-center space-x-1 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all duration-200 text-xs font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Publicar todos los productos visibles en la web"
@@ -3306,14 +3381,16 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                     )}
                     {/* Columna Ancho - Solo si hay productos con ancho */}
                     {filteredProductsInv.some(p => p.variantes.some(v => v.ancho && v.ancho !== '' && v.ancho !== 'N/A')) && (
-                      <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[50px]">
-                        Ancho
+                      <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[60px]">
+                        <div>Ancho</div>
+                        <div className="text-xs text-slate-500 normal-case font-normal">mm</div>
                       </th>
                     )}
                     {/* Columna Largo - Solo si hay productos con largo */}
                     {filteredProductsInv.some(p => p.variantes.some(v => v.largo && v.largo !== '' && v.largo !== 'N/A')) && (
-                      <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[50px]">
-                        Largo
+                      <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[60px]">
+                        <div>Largo</div>
+                        <div className="text-xs text-slate-500 normal-case font-normal">mts</div>
                       </th>
                     )}
                     <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[55px]">
@@ -3424,11 +3501,11 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                           </td>
                         )}
                         
-                        {/* Ancho metros - Solo si hay productos con ancho */}
+                        {/* Ancho - Solo si hay productos con ancho */}
                         {filteredProductsInv.some(p => p.variantes.some(v => v.ancho && v.ancho !== '' && v.ancho !== 'N/A')) && (
                           <td className="px-3 py-3 border border-slate-200 bg-white text-center">
                             {(() => {
-                              const dimension = detectarUnidadDimension(variant.ancho);
+                              const dimension = detectarUnidadDimension(variant.ancho, variant.tipo, variant.categoria, 'ancho');
                               return (
                                 <>
                                   <div className="text-slate-900 font-semibold">
@@ -3443,11 +3520,11 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                           </td>
                         )}
                         
-                        {/* Largo metros - Solo si hay productos con largo */}
+                        {/* Largo - Solo si hay productos con largo */}
                         {filteredProductsInv.some(p => p.variantes.some(v => v.largo && v.largo !== '' && v.largo !== 'N/A')) && (
                           <td className="px-3 py-3 border border-slate-200 bg-white text-center">
                             {(() => {
-                              const dimension = detectarUnidadDimension(variant.largo);
+                              const dimension = detectarUnidadDimension(variant.largo, variant.tipo, variant.categoria, 'largo');
                               return (
                                 <>
                                   <div className="text-slate-900 font-semibold">
@@ -3724,8 +3801,23 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
 
         {/* Modal de detalles del producto */}
         {showDetailModalInv && selectedProductInv && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={(e) => {
+              // Prevenir cierre si hay upload en progreso o está forzado
+              if (imageUploadInProgress || modalForceOpenRef.current) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🚫 Cierre de modal prevenido durante upload de imagen');
+                return;
+              }
+            }}
+          >
+            <div 
+              className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              role="dialog"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-200 px-8 py-6 flex justify-between items-center">
                 <div className="flex items-center space-x-4">
                   <div>
@@ -3784,11 +3876,20 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                   {/* Botón cerrar */}
                   <button
                     onClick={() => {
-                      setShowDetailModalInv(false);
-                      setSelectedProductInv(null);
+                      if (!imageUploadInProgress && !modalForceOpenRef.current) {
+                        setShowDetailModalInv(false);
+                        setSelectedProductInv(null);
+                      } else {
+                        console.log('🚫 Cierre manual bloqueado durante upload');
+                      }
                     }}
-                    className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
-                    title="Cerrar"
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                      imageUploadInProgress || modalForceOpenRef.current 
+                        ? 'bg-gray-300 cursor-not-allowed' 
+                        : 'bg-slate-100 hover:bg-slate-200'
+                    }`}
+                    title={imageUploadInProgress ? "Upload en progreso..." : "Cerrar"}
+                    disabled={imageUploadInProgress || modalForceOpenRef.current}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -3816,22 +3917,43 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                         </span>
                       </div>
                       {/* Botón para cambiar imagen */}
-                      <label className="absolute bottom-4 right-4 px-4 py-2 bg-white/90 hover:bg-white text-gray-700 rounded-lg font-medium cursor-pointer transition-all duration-200 shadow-lg opacity-0 group-hover:opacity-100">
+                      <label className={`absolute bottom-4 right-4 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg opacity-0 group-hover:opacity-100 ${
+                        imageUploadInProgress 
+                          ? 'bg-blue-500 text-white cursor-wait'
+                          : 'bg-white/90 hover:bg-white text-gray-700 cursor-pointer'
+                      }`}>
                         <input
                           type="file"
                           accept="image/*"
+                          disabled={imageUploadInProgress}
                           onChange={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             const file = e.target.files?.[0];
-                            if (file) {
+                            if (file && !imageUploadInProgress) {
+                              console.log('🔄 Subiendo imagen, modal protegido...');
                               handleImageUploadForProduct(selectedProductInv.codigo, file);
                             }
+                            // Limpiar el input para permitir seleccionar el mismo archivo otra vez
+                            e.target.value = '';
                           }}
                           className="hidden"
                         />
-                        <svg className="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Cambiar
+                        {imageUploadInProgress ? (
+                          <>
+                            <svg className="w-4 h-4 inline-block mr-1 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Subiendo...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Cambiar
+                          </>
+                        )}
                       </label>
                     </div>
                   ) : (
@@ -3841,19 +3963,36 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <p className="text-gray-500 font-medium mb-2">Sin imagen del producto</p>
-                        <label className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium cursor-pointer transition-colors">
+                        <label className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          imageUploadInProgress 
+                            ? 'bg-blue-500 text-white cursor-wait'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                        }`}>
                           <input
                             type="file"
                             accept="image/*"
+                            disabled={imageUploadInProgress}
                             onChange={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               const file = e.target.files?.[0];
-                              if (file) {
+                              if (file && !imageUploadInProgress) {
                                 handleImageUploadForProduct(selectedProductInv.codigo, file);
                               }
+                              e.target.value = '';
                             }}
                             className="hidden"
                           />
-                          Cargar imagen
+                          {imageUploadInProgress ? (
+                            <>
+                              <svg className="w-4 h-4 inline-block mr-1 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              Subiendo...
+                            </>
+                          ) : (
+                            'Cargar imagen'
+                          )}
                         </label>
                       </div>
                     </div>
@@ -3959,7 +4098,7 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                               <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold inline-block">
                                 {selectedProductInv.uso}
                               </span>
-                            ) : selectedProductInv.categoria === 'Perfiles' ? (
+                            ) : (selectedProductInv.categoria === 'Perfiles' || selectedProductInv.categoria === 'Perfiles Alveolar') ? (
                               <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold inline-block">
                                 {selectedProductInv.nombre.toUpperCase().includes('PERFIL U') ? 'Base y terminación para policarbonato alveolar' : 
                                  selectedProductInv.nombre.toUpperCase().includes('CLIP') ? 'Unión de planchas con sistema click' :
@@ -4038,22 +4177,41 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                     <div className="flex gap-3">
                       {/* Botón de carga de imagen */}
                       {!selectedProductInv.tiene_imagen && (
-                        <label className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl">
+                        <label className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
+                          imageUploadInProgress 
+                            ? 'bg-blue-500 text-white cursor-wait'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                        }`}>
                           <input
                             type="file"
                             accept="image/*"
+                            disabled={imageUploadInProgress}
                             onChange={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               const file = e.target.files?.[0];
-                              if (file) {
+                              if (file && !imageUploadInProgress) {
                                 handleImageUploadForProduct(selectedProductInv.codigo, file);
                               }
+                              e.target.value = '';
                             }}
                             className="hidden"
                           />
-                          <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          Cargar Imagen
+                          {imageUploadInProgress ? (
+                            <>
+                              <svg className="w-5 h-5 inline-block mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              Subiendo Imagen...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              Cargar Imagen
+                            </>
+                          )}
                         </label>
                       )}
                       

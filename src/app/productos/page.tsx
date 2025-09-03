@@ -59,7 +59,7 @@ function ProductosContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [filtroCategoria, setFiltroCategoria] = useState<string>('Todos');
-  const [ordenPor, setOrdenPor] = useState<string>('nombre');
+  const [ordenPor, setOrdenPor] = useState<string>('precio-desc');
   const [busqueda, setBusqueda] = useState<string>('');
   const [showLocationSelector, setShowLocationSelector] = useState<boolean>(false);
   const [fechaDespacho, setFechaDespacho] = useState<string>('');
@@ -81,9 +81,11 @@ function ProductosContent() {
         
         if (response.ok) {
           const result = await response.json();
+          console.log('🔄 DEBUG: Response result:', result);
           if (result.success) {
             setProductosData(result.data);
             console.log('✅ Productos cargados desde Supabase:', result.total);
+            console.log('🔍 DEBUG: Categorías en result.data:', Object.keys(result.data.productos_por_categoria || {}));
           } else {
             console.error('❌ Error en API pública:', result.error);
             setProductosData({ productos_por_categoria: {}, productos_policarbonato: [] });
@@ -142,9 +144,10 @@ function ProductosContent() {
           };
         });
         
-        // Usar nombres de categoría normalizados para la clave
+        // Usar nombres de categoría normalizados para la clave PERO también mantener la clave original
         const categoriaKey = categoria.toLowerCase().replace(/\s+/g, '_');
         result[categoriaKey] = productosFormateados;
+        result[categoria] = productosFormateados; // Mantener también la clave original
       });
       
       return {
@@ -170,7 +173,8 @@ function ProductosContent() {
     
     // Agregar productos de cada categoría disponible (excepto productos_policarbonato que es legacy)
     Object.keys(productosAgrupados).forEach(key => {
-      if (key !== 'productos_policarbonato' && key !== 'accesorios') {
+      // Excluir claves legacy y duplicados normalizados  
+      if (key !== 'productos_policarbonato' && key !== 'accesorios' && !key.includes('_')) {
         const categoria = productosAgrupados[key];
         if (Array.isArray(categoria)) {
           console.log(`✅ Agregando categoría ${key} con ${categoria.length} productos`);
@@ -471,9 +475,9 @@ function ProductosContent() {
                     onChange={(e) => setOrdenPor(e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all duration-300 appearance-none bg-white form-input-mobile touch-target"
                   >
-                    <option value="nombre">Nombre A-Z</option>
+                    <option value="precio-desc">Mayor a menor</option>
                     <option value="precio-asc">Precio: Menor a Mayor</option>
-                    <option value="precio-desc">Precio: Mayor a Menor</option>
+                    <option value="nombre">Nombre A-Z</option>
                   </select>
                   <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -483,13 +487,13 @@ function ProductosContent() {
             </div>
 
             {/* Botón de limpiar filtros - Solo visible cuando hay filtros activos */}
-            {(busqueda || filtroCategoria !== 'Todos' || ordenPor !== 'nombre') && (
+            {(busqueda || filtroCategoria !== 'Todos' || ordenPor !== 'precio-desc') && (
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <button
                   onClick={() => {
                     setBusqueda('');
                     setFiltroCategoria('Todos');
-                    setOrdenPor('nombre');
+                    setOrdenPor('precio-desc');
                   }}
                   className="flex items-center justify-center w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors touch-target"
                 >

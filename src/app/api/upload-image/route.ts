@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
     const codigo = formData.get('codigo') as string;
     const categoria = formData.get('categoria') as string;
     const tipo = formData.get('tipo') as string;
+    const nombre = formData.get('nombre') as string || '';
 
     if (!file) {
       return NextResponse.json({ success: false, error: 'No se proporcionó imagen' }, { status: 400 });
@@ -31,8 +32,8 @@ export async function POST(request: NextRequest) {
         'Compacto': 'Policarbonato Compacto', 
         'Ondulado': 'Policarnato Ondulado' // Nota: hay typo en la carpeta existente
       },
-      'Perfiles Alveolar': 'Perfiles Alveolar',
-      'Perfiles': 'Perfiles',
+      'Perfiles Alveolar': 'productos/perfiles', // Carpeta especial para perfiles
+      'Perfiles': 'productos/perfiles',
       'Accesorios': 'Accesorios',
       'Rollos': 'Rollo'
     };
@@ -48,8 +49,10 @@ export async function POST(request: NextRequest) {
       carpetaDestino = categoria;
     }
 
-    // Crear ruta completa
-    const basePath = path.join(process.cwd(), 'public', 'assets', 'images', 'Productos', carpetaDestino);
+    // Crear ruta completa - manejar subcarpetas especiales
+    const basePath = carpetaDestino.includes('productos/') 
+      ? path.join(process.cwd(), 'public', 'assets', 'images', carpetaDestino)
+      : path.join(process.cwd(), 'public', 'assets', 'images', 'Productos', carpetaDestino);
     
     // Crear directorio si no existe
     if (!fs.existsSync(basePath)) {
@@ -67,12 +70,24 @@ export async function POST(request: NextRequest) {
         'Ondulado': 'policarbonato-ondulado-general',
         'Alveolar': 'policarbonato-alveolar-general', 
         'Compacto': 'policarbonato-compacto-general'
+      },
+      'Perfiles Alveolar': {
+        'Perfil U': 'perfil-u-policarbonato',
+        'Perfil Clip Plano': 'Perfil_Clip'
       }
-      // Perfiles Alveolar usa imágenes individuales por SKU, no compartidas
-      // 'Perfiles' también usa imágenes individuales por SKU
     };
     
-    const tieneImagenCompartida = productosConImagenCompartida[categoria]?.[tipo];
+    // Para perfiles, detectar el tipo específico basado en el nombre del producto
+    let tipoDetectado = tipo;
+    if (categoria === 'Perfiles Alveolar') {
+      if (nombre.toLowerCase().includes('perfil u')) {
+        tipoDetectado = 'Perfil U';
+      } else if (nombre.toLowerCase().includes('perfil clip') || nombre.toLowerCase().includes('clip plano')) {
+        tipoDetectado = 'Perfil Clip Plano';
+      }
+    }
+    
+    const tieneImagenCompartida = productosConImagenCompartida[categoria]?.[tipoDetectado];
     
     const fileName = tieneImagenCompartida 
       ? `${tieneImagenCompartida}${extension}`
@@ -85,7 +100,9 @@ export async function POST(request: NextRequest) {
 
     fs.writeFileSync(filePath, buffer);
 
-    const rutaImagen = `/assets/images/Productos/${carpetaDestino}/${fileName}`;
+    const rutaImagen = carpetaDestino.includes('productos/') 
+      ? `/assets/images/${carpetaDestino}/${fileName}`
+      : `/assets/images/Productos/${carpetaDestino}/${fileName}`;
 
     // Actualizar base de datos Supabase
     try {
@@ -94,31 +111,60 @@ export async function POST(request: NextRequest) {
       if (supabase) {
         if (tieneImagenCompartida) {
           // Para productos con imagen compartida, actualizar TODOS los productos del mismo tipo
-          console.log(`🔄 Actualizando todos los productos de ${categoria} ${tipo}...`);
+          console.log(`🔄 Actualizando todos los productos de ${categoria} ${tipoDetectado}...`);
           
-          // Obtener todos los productos del mismo tipo
-          const { data: productosDelTipo } = await supabase
-            .from('productos')
-            .select('codigo')
-            .eq('categoria', categoria)
-            .eq('tipo', tipo);
-          
-          if (productosDelTipo && productosDelTipo.length > 0) {
-            // Actualizar todos los productos encontrados
-            const { error: updateError } = await supabase
+          if (categoria === 'Perfiles Alveolar') {
+            // Para perfiles, buscar por nombre que contenga el tipo específico
+            const patron = tipoDetectado === 'Perfil U' ? '%Perfil U%' : '%Perfil Clip%';
+            const { data: productosDelTipo } = await supabase
               .from('productos')
-              .update({
-                tiene_imagen: true,
-                ruta_imagen: rutaImagen,
-                updated_at: new Date().toISOString()
-              })
+              .select('codigo')
+              .eq('categoria', categoria)
+              .ilike('nombre', patron);
+            
+            if (productosDelTipo && productosDelTipo.length > 0) {
+              // Actualizar todos los productos encontrados
+              const { error: updateError } = await supabase
+                .from('productos')
+                .update({
+                  tiene_imagen: true,
+                  ruta_imagen: rutaImagen,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('categoria', categoria)
+                .ilike('nombre', patron);
+              
+              if (updateError) {
+                console.error(`Error actualizando productos ${categoria} ${tipoDetectado}:`, updateError);
+              } else {
+                console.log(`✅ Actualizados ${productosDelTipo.length} productos de ${categoria} ${tipoDetectado}`);
+              }
+            }
+          } else {
+            // Lógica original para policarbonatos
+            const { data: productosDelTipo } = await supabase
+              .from('productos')
+              .select('codigo')
               .eq('categoria', categoria)
               .eq('tipo', tipo);
             
-            if (updateError) {
-              console.error(`Error actualizando productos ${categoria} ${tipo}:`, updateError);
-            } else {
-              console.log(`✅ Actualizados ${productosDelTipo.length} productos de ${categoria} ${tipo}`);
+            if (productosDelTipo && productosDelTipo.length > 0) {
+              // Actualizar todos los productos encontrados
+              const { error: updateError } = await supabase
+                .from('productos')
+                .update({
+                  tiene_imagen: true,
+                  ruta_imagen: rutaImagen,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('categoria', categoria)
+                .eq('tipo', tipo);
+            
+              if (updateError) {
+                console.error(`Error actualizando productos ${categoria} ${tipo}:`, updateError);
+              } else {
+                console.log(`✅ Actualizados ${productosDelTipo.length} productos de ${categoria} ${tipo}`);
+              }
             }
           }
         } else {

@@ -85,8 +85,8 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
     }).join(' x ');
   };
 
-  // Función para formatear una dimensión individual (ancho o largo)
-  const formatSingleDimension = (value: string) => {
+  // Función para formatear una dimensión individual (ancho o largo)  
+  const formatSingleDimension = (value: string, campo?: string) => {
     if (!value || value === '0' || value === '0.0') return 'N/A';
     
     // Manejar valores con coma decimal (formato chileno)
@@ -95,9 +95,27 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
     
     if (isNaN(num) || num === 0) return 'N/A';
     
-    // Los valores en la base de datos YA están en metros
-    // Decidir la mejor unidad para mostrar según el valor
+    // CORRECCIÓN ESPECIAL PARA PERFILES
+    const esPerfilCategoria = productGroup.categoria?.toLowerCase().includes('perfil') || 
+                             productGroup.tipo?.toLowerCase().includes('perfil') ||
+                             productGroup.nombre?.toLowerCase().includes('perfil');
     
+    if (esPerfilCategoria && campo === 'ancho') {
+      // Corregir valores específicos de Google Sheets para anchos de perfiles
+      if (num === 20 || Math.abs(num - 20) < 0.01) {
+        return '0,02 mm';
+      }
+      if (num === 55 || Math.abs(num - 55) < 0.01) {
+        return '0,055 mm';
+      }
+      // Para otros valores de perfil, asumir que ya están en mm
+      if (num < 1) {
+        return `${num.toString().replace('.', ',')} mm`;
+      }
+      return `${num} mm`;
+    }
+    
+    // LÓGICA ORIGINAL para otros casos
     // Para valores muy pequeños (menos de 0.01 metros = 10mm)
     if (num < 0.01) {
       const mm = Math.round(num * 1000);
@@ -239,8 +257,8 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
         especificaciones: [
           `Código: ${selectedVariant.codigo}`,
           `Espesor: ${selectedVariant.espesor}`,
-          ...(selectedAncho ? [`Ancho: ${formatSingleDimension(selectedAncho)}`] : []),
-          ...(selectedLargo ? [`Largo: ${formatSingleDimension(selectedLargo)}`] : []),
+          ...(selectedAncho ? [`Ancho: ${formatSingleDimension(selectedAncho, 'ancho')}`] : []),
+          ...(selectedLargo ? [`Largo: ${formatSingleDimension(selectedLargo, 'largo')}`] : []),
           `Color: ${selectedVariant.color}`,
           `Protección UV: ${selectedVariant.uv_protection ? 'Sí' : 'No'}`,
           ...(selectedDispatchDate ? [`Fecha de despacho: ${createDateFromISOString(selectedDispatchDate).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}`] : [])
@@ -584,7 +602,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
           {uniqueAnchos.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ancho: <span className="text-amber-600 font-bold">{formatSingleDimension(selectedAncho)}</span>
+                Ancho: <span className="text-amber-600 font-bold">{formatSingleDimension(selectedAncho, 'ancho')}</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {uniqueAnchos.map((ancho) => (
@@ -597,7 +615,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
                         : 'border-gray-200 bg-white hover:border-amber-300 hover:bg-amber-50 text-gray-700'
                     }`}
                   >
-                    {formatSingleDimension(ancho)}
+                    {formatSingleDimension(ancho, 'ancho')}
                   </button>
                 ))}
               </div>
@@ -608,7 +626,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
           {uniqueLargos.length > 0 && (
             <div className="mb-8">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Largo: <span className="text-amber-600 font-bold">{formatSingleDimension(selectedLargo)}</span>
+                Largo: <span className="text-amber-600 font-bold">{formatSingleDimension(selectedLargo, 'largo')}</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {uniqueLargos.map((largo) => (
@@ -621,7 +639,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
                         : 'border-gray-200 bg-white hover:border-amber-300 hover:bg-amber-50 text-gray-700'
                     }`}
                   >
-                    {formatSingleDimension(largo)}
+                    {formatSingleDimension(largo, 'largo')}
                   </button>
                 ))}
               </div>

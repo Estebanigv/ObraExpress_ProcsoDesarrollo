@@ -23,13 +23,16 @@ function getDefaultImage(tipo: string, color?: string): string {
       'default': '/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto.webp'
     },
     'Perfil U': {
-      'default': '/assets/images/productos/perfiles/perfil-u-policarbonato.webp'
+      'default': '/assets/images/productos/perfiles/Perfil%20U.webp'
     },
     'Perfil H': {
       'default': '/assets/images/productos/perfiles/perfil-h-policarbonato.webp'
     },
     'Perfil Clip': {
-      'default': '/assets/images/productos/perfiles/perfil-clip-policarbonato.webp'
+      'default': '/assets/images/productos/perfiles/Perfil%20Clip.webp'
+    },
+    'Perfil Clip Plano': {
+      'default': '/assets/images/Productos/Perfiles/Perfil_Clip.webp'
     },
     'Perfil Alveolar': {
       'default': '/assets/images/productos/perfiles/perfil-alveolar-policarbonato.webp'
@@ -53,10 +56,44 @@ function getDefaultImage(tipo: string, color?: string): string {
 }
 
 // Función para formatear dimensiones para cliente (consistente con componente)
-function formatDimensionClient(dimension: string): string {
+function formatDimensionClient(dimension: string, campo?: string, categoria?: string, tipo?: string): string {
   // Si es vacío, null o undefined, retornar vacío
   if (!dimension || dimension === '' || dimension === 'null' || dimension === 'undefined' || dimension === '0' || dimension === '0.0') {
     return '';
+  }
+  
+  // CORRECCIÓN ESPECIAL PARA PERFILES CON STRINGS QUE YA TIENEN UNIDADES
+  const esPerfilCategoria = categoria?.toLowerCase().includes('perfil') || 
+                           tipo?.toLowerCase().includes('perfil');
+  
+  if (esPerfilCategoria && campo === 'ancho') {
+    // Para ANCHOS de perfiles: corregir valores específicos que vienen como "20mm"
+    if (dimension.includes('20mm') || dimension.includes('20 mm')) {
+      return '0,02 mm';
+    }
+    if (dimension.includes('55mm') || dimension.includes('55 mm')) {
+      return '0,055 mm';
+    }
+  }
+  
+  // CORRECCIÓN ESPECIAL PARA POLICARBONATO ONDULADO
+  const esOndulado = categoria?.toLowerCase().includes('policarbonato') && 
+                     tipo?.toLowerCase().includes('ondulado');
+  
+  if (esOndulado) {
+    // Para ANCHO del policarbonato ondulado: corregir 81cm a 0,81 cm
+    if (campo === 'ancho' && (dimension.includes('81cm') || dimension.includes('81 cm'))) {
+      return '0,81 cm';
+    }
+    // Para LARGOS: asegurar formato con dos decimales
+    if (campo === 'largo') {
+      if (dimension.includes('2 mts') || dimension === '2 mts') {
+        return '2,00 mts';
+      }
+      if (dimension.includes('3 mts') || dimension === '3 mts') {
+        return '3,00 mts';
+      }
+    }
   }
   
   // Convertir a string y limpiar - manejar comas decimales chilenas
@@ -67,9 +104,43 @@ function formatDimensionClient(dimension: string): string {
   
   const num = parseFloat(valorStr);
   if (!isNaN(num) && num > 0) {
-    // Los valores en la base de datos YA están en metros
-    // Decidir la mejor unidad para mostrar según el valor
     
+    // CORRECCIÓN ESPECIAL PARA PERFILES
+    const esPerfilCategoria = categoria?.toLowerCase().includes('perfil') || 
+                             tipo?.toLowerCase().includes('perfil');
+    
+    if (esPerfilCategoria && campo === 'ancho') {
+      // Corregir valores específicos de Google Sheets para anchos de perfiles
+      if (num === 20 || Math.abs(num - 20) < 0.01) {
+        return '0,02 mm';
+      }
+      if (num === 55 || Math.abs(num - 55) < 0.01) {
+        return '0,055 mm';
+      }
+      // Para otros valores de perfil, asumir que ya están en mm
+      if (num < 1) {
+        return `${num.toString().replace('.', ',')} mm`;
+      }
+      return `${num} mm`;
+    }
+    
+    // LÓGICA ESPECIAL PARA POLICARBONATO ONDULADO (valores numéricos)
+    const esOndulado = categoria?.toLowerCase().includes('policarbonato') && 
+                       tipo?.toLowerCase().includes('ondulado');
+    
+    if (esOndulado) {
+      // Para ANCHO del policarbonato ondulado: corregir 81 a 0,81 cm
+      if (campo === 'ancho' && (num === 81 || Math.abs(num - 81) < 0.01)) {
+        return '0,81 cm';
+      }
+      // Para LARGOS: asegurar formato con dos decimales para valores enteros
+      if (campo === 'largo' && num >= 1) {
+        const formatted = num.toFixed(2).replace('.', ',');
+        return `${formatted} mts`;
+      }
+    }
+    
+    // LÓGICA ORIGINAL para otros casos
     // Para valores muy pequeños (menos de 0.01 metros = 10mm)
     if (num < 0.01) {
       const mm = Math.round(num * 1000);
@@ -96,7 +167,7 @@ export async function GET(request: NextRequest) {
   
   try {
     // Importar configuración de categorías visibles con timeout
-    let categoriasVisibles = ['Policarbonato']; // Fallback por defecto
+    let categoriasVisibles = ['Policarbonato', 'Perfiles Alveolar']; // Fallback por defecto
     
     try {
       const categoriesModule = await Promise.race([
@@ -142,6 +213,7 @@ export async function GET(request: NextRequest) {
             disponible_en_web
           `)
           .in('categoria', categoriasVisibles)
+          .eq('disponible_en_web', true)
           .not('precio_con_iva', 'is', null)
           .gt('precio_con_iva', 0)
           .limit(500) // Limitar resultados para evitar sobrecarga
@@ -168,6 +240,9 @@ export async function GET(request: NextRequest) {
             stock: productos[0].stock,
             precio: productos[0].precio_con_iva
           });
+          // Debug: Buscar perfiles específicamente
+          const perfilesEncontrados = productos.filter(p => p.categoria === 'Perfiles Alveolar');
+          console.log('🔍 Perfiles encontrados:', perfilesEncontrados.length, perfilesEncontrados.map(p => ({codigo: p.codigo, nombre: p.nombre, disponible_en_web: p.disponible_en_web})));
         }
       } catch (supabaseError) {
         console.warn('⚠️ Error/timeout con Supabase, usando fallback JSON:', supabaseError);
@@ -275,8 +350,15 @@ export async function GET(request: NextRequest) {
       // Crear categoria completa para agrupación, evitando duplicaciones
       let categoriaCompleta;
       if (categoria === 'Perfiles Alveolar') {
-        // Para perfiles, usar solo el tipo específico como nombre
-        categoriaCompleta = tipo; 
+        // Para perfiles, crear categorías separadas según el nombre del producto
+        if (producto.nombre && producto.nombre.includes('Perfil U')) {
+          categoriaCompleta = 'Perfil U';
+        } else if (producto.nombre && (producto.nombre.includes('Perfil Clip') || producto.nombre.includes('Clip Plano'))) {
+          categoriaCompleta = 'Perfil Clip Plano';
+        } else {
+          // Fallback para otros perfiles
+          categoriaCompleta = `${categoria} - ${tipo}`;
+        }
       } else {
         // Para policarbonatos, usar "Policarbonato Tipo"
         categoriaCompleta = `${categoria} ${tipo}`;
@@ -286,8 +368,8 @@ export async function GET(request: NextRequest) {
         acc[categoriaCompleta] = [];
       }
 
-      // Buscar producto existente por tipo dentro de la categoria completa
-      let productoExistente = acc[categoriaCompleta].find(p => p.tipo === tipo);
+      // Buscar producto existente por categoría completa
+      let productoExistente = acc[categoriaCompleta].find(p => p.nombre === categoriaCompleta);
 
       if (!productoExistente) {
         // Crear descripción más detallada según el tipo
@@ -303,17 +385,23 @@ export async function GET(request: NextRequest) {
         } else if (tipo === 'Compacto') {
           descripcionDetallada = `Policarbonato compacto de alta transparencia y resistencia al impacto. Ideal para aplicaciones que requieren máxima claridad óptica.`;
           usos = ['Mamparas', 'Ventanas de seguridad', 'Cubiertas transparentes', 'Protecciones industriales'];
+        } else if (categoriaCompleta === 'Perfil U') {
+          descripcionDetallada = `Perfil U de policarbonato para cerrar los extremos de láminas alveolares. Protege del ingreso de polvo, insectos y humedad.`;
+          usos = ['Cierre de paneles alveolares', 'Acabado de bordes', 'Protección de extremos'];
+        } else if (categoriaCompleta === 'Perfil Clip Plano') {
+          descripcionDetallada = `Perfil Clip Plano para unir láminas de policarbonato alveolar. Permite una instalación rápida y segura sin necesidad de tornillos.`;
+          usos = ['Unión de paneles alveolares', 'Instalación rápida', 'Juntas flexibles'];
         } else {
-          descripcionDetallada = `${tipo} de ${categoria} con alta calidad, garantía extendida y protección UV incluida.`;
+          descripcionDetallada = `${categoriaCompleta} con alta calidad, garantía extendida y protección UV incluida.`;
           usos = ['Uso general', 'Construcción', 'Industria'];
         }
 
         productoExistente = {
-          id: `${categoria.toLowerCase().replace(/\s+/g, '-')}-${tipo.toLowerCase().replace(/\s+/g, '-')}`,
+          id: `${categoriaCompleta.toLowerCase().replace(/\s+/g, '-')}`,
           nombre: categoriaCompleta,
           descripcion: descripcionDetallada,
           descripcion_corta: `${tipo} de ${categoria} con garantía y protección UV`,
-          categoria: categoriaCompleta,
+          categoria: categoria === 'Perfiles Alveolar' ? 'Perfil Alveolar' : categoriaCompleta,
           tipo: tipo,
           usos_principales: usos,
           caracteristicas: [
@@ -329,7 +417,7 @@ export async function GET(request: NextRequest) {
           precio_desde: Infinity,
           stock_total: 0,
           variantes_count: 0,
-          imagen: getDefaultImage(tipo, 'default')
+          imagen: getDefaultImage(categoriaCompleta, 'default')
         };
         acc[categoriaCompleta].push(productoExistente);
       }
@@ -344,11 +432,11 @@ export async function GET(request: NextRequest) {
         
         // INFORMACIÓN TÉCNICA (Visible para cliente)
         espesor: producto.espesor || '',
-        ancho: producto.ancho ? formatDimensionClient(producto.ancho) : '',
-        largo: producto.largo ? formatDimensionClient(producto.largo) : '',
+        ancho: producto.ancho ? formatDimensionClient(producto.ancho, 'ancho', producto.categoria, producto.tipo) : '',
+        largo: producto.largo ? formatDimensionClient(producto.largo, 'largo', producto.categoria, producto.tipo) : '',
         color: producto.color || 'No especificado',
         uso: producto.uso || 'Uso general',
-        dimensiones: producto.ancho && producto.largo ? `${formatDimensionClient(producto.ancho)} x ${formatDimensionClient(producto.largo)}` : '',
+        dimensiones: producto.ancho && producto.largo ? `${formatDimensionClient(producto.ancho, 'ancho', producto.categoria, producto.tipo)} x ${formatDimensionClient(producto.largo, 'largo', producto.categoria, producto.tipo)}` : '',
         
         // PRECIO PÚBLICO (Solo precio final con IVA)
         precio_con_iva: producto.precio_con_iva || 0,
@@ -365,7 +453,7 @@ export async function GET(request: NextRequest) {
         stock_disponible: producto.stock > 10 ? 'Disponible' : producto.stock > 0 ? 'Stock limitado' : 'Sin stock',
         
         // INFORMACIÓN ADICIONAL DEL PRODUCTO
-        imagen: producto.ruta_imagen || getDefaultImage(producto.tipo, producto.color),
+        imagen: producto.ruta_imagen || getDefaultImage(categoriaCompleta, producto.color),
         ruta_imagen: producto.ruta_imagen,
         garantia: "10 años",
         uv_protection: true,
@@ -393,7 +481,7 @@ export async function GET(request: NextRequest) {
       
       // Actualizar imagen por defecto si no hay imagen principal
       if (!productoExistente.imagen_principal && !productoExistente.imagen) {
-        productoExistente.imagen = getDefaultImage(producto.tipo, producto.color);
+        productoExistente.imagen = getDefaultImage(categoriaCompleta, producto.color);
       }
 
       return acc;
@@ -437,10 +525,59 @@ export async function GET(request: NextRequest) {
     });
 
 
+    // Definir orden personalizado de categorías
+    const ordenDeseado = [
+      'Policarbonato Alveolar',
+      'Policarbonato Compacto', 
+      'Policarbonato Ondulado',
+      'Perfil Clip Plano',
+      'Perfil U'
+    ];
+
+    // Ordenar categorías según el orden deseado
+    const productosPorCategoriaOrdenados: Record<string, any[]> = {};
+    
+    // Primero agregar las categorías en el orden deseado
+    ordenDeseado.forEach(categoria => {
+      if (productosPorCategoria[categoria]) {
+        productosPorCategoriaOrdenados[categoria] = productosPorCategoria[categoria];
+      }
+    });
+    
+    // Luego agregar cualquier otra categoría que no esté en la lista
+    Object.keys(productosPorCategoria).forEach(categoria => {
+      if (!ordenDeseado.includes(categoria)) {
+        productosPorCategoriaOrdenados[categoria] = productosPorCategoria[categoria];
+      }
+    });
+
+    // Ordenar productos dentro de cada categoría por precio
+    Object.keys(productosPorCategoriaOrdenados).forEach(categoria => {
+      // Ordenar variantes dentro de cada producto por precio (menor a mayor)
+      // para que el precio más barato aparezca primero en cada producto
+      productosPorCategoriaOrdenados[categoria].forEach((producto: any) => {
+        if (producto.variantes && producto.variantes.length > 1) {
+          producto.variantes.sort((a: any, b: any) => {
+            const precioA = a.precio_con_iva || a.precio || 0;
+            const precioB = b.precio_con_iva || b.precio || 0;
+            return precioA - precioB; // Orden ascendente (menor a mayor)
+          });
+        }
+      });
+
+      // Ordenar productos dentro de la categoría por precio más alto de sus variantes
+      // (esto mantiene el orden de categorías: las más caras primero)
+      productosPorCategoriaOrdenados[categoria].sort((productoA: any, productoB: any) => {
+        const precioMaxA = Math.max(...(productoA.variantes?.map((v: any) => v.precio_con_iva || v.precio || 0) || [0]));
+        const precioMaxB = Math.max(...(productoB.variantes?.map((v: any) => v.precio_con_iva || v.precio || 0) || [0]));
+        return precioMaxB - precioMaxA; // Orden descendente (mayor a menor) para mantener categorías ordenadas
+      });
+    });
+
     // Estadísticas públicas
     const stats = {
       totalProductos: productos.length,
-      categorias: Object.keys(productosPorCategoria).length,
+      categorias: Object.keys(productosPorCategoriaOrdenados).length,
       ultimaActualizacion: productos.length > 0 ? 
         Math.max(...productos.map(p => new Date(p.created_at).getTime())) : Date.now()
     };
@@ -448,9 +585,9 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       data: {
-        productos_por_categoria: productosPorCategoria,
+        productos_por_categoria: productosPorCategoriaOrdenados,
         // Mantener compatibilidad
-        productos_policarbonato: productosPorCategoria['Policarbonato'] || []
+        productos_policarbonato: productosPorCategoriaOrdenados['Policarbonato'] || []
       },
       stats,
       fuente: 'supabase_publico',
