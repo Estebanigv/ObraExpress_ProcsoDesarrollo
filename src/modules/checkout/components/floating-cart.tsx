@@ -480,19 +480,12 @@ function CartModal() {
                         <div className="flex gap-4">
                           {/* Imagen del producto */}
                           <div className="w-16 h-16 bg-white rounded-lg border border-gray-200 flex-shrink-0 overflow-hidden">
-                            {item.imagen ? (
-                              <CartThumbnail
-                                src={item.imagen}
-                                alt={item.nombre}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                            )}
+                            <CartThumbnail
+                              src={item.imagen || ''}
+                              alt={item.nombre}
+                              className="w-full h-full object-cover"
+                              productName={item.nombre}
+                            />
                           </div>
 
                           {/* Información del producto */}

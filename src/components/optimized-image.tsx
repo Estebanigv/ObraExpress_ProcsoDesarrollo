@@ -144,13 +144,29 @@ export function CartThumbnail({
   className?: string;
   productName?: string;
 }) {
+  console.log('🎯 CartThumbnail ejecutándose:', { src, alt, productName });
+  
   const enhancedAlt = productName 
     ? `Miniatura: ${productName} en carrito de compras`
     : `Miniatura: ${alt} en carrito`;
 
+  // Fallback para productos sin imagen
+  let imageSrc = src;
+  if (!src || src === '' || src === 'undefined') {
+    console.log('🔧 Fallback activado para:', productName, 'src original:', src);
+    if (productName && productName.includes('Perfil U')) {
+      imageSrc = '/assets/images/Productos/Perfiles/Perfil_U.webp';
+      console.log('✅ Usando imagen Perfil U:', imageSrc);
+    } else if (productName && productName.includes('Perfil Clip')) {
+      imageSrc = '/assets/images/Productos/Perfiles/Perfil_Clip.webp';
+    } else if (productName && productName.includes('Perfil')) {
+      imageSrc = '/assets/images/Productos/Perfiles/Perfil_U.webp'; // Imagen por defecto para perfiles
+    }
+  }
+
   return (
     <OptimizedImage
-      src={src}
+      src={imageSrc}
       alt={enhancedAlt}
       width={64}
       height={64}
