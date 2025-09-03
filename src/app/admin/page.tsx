@@ -2002,6 +2002,10 @@ export default function AdminDashboard() {
             /^[A-Za-z0-9\-_]+$/.test(v.codigo.trim());
           
           if (!hasValidSKU) return false;
+          
+          // FILTRO AUTOMÁTICO: Ocultar productos con stock menor a 9 unidades
+          const stock = parseInt(v.stock) || 0;
+          if (stock < 9) return false;
         
         const matchesSearch = searchTermInv === '' || 
           v.nombre.toLowerCase().includes(searchTermInv.toLowerCase()) ||
@@ -3360,6 +3364,23 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                   </div>
                 )}
                 
+                {/* Barra informativa de filtro automático */}
+                <div className="bg-amber-50 border-l-4 border-amber-400 px-6 py-3">
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 text-amber-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-amber-800">
+                        Filtro automático de stock activado
+                      </p>
+                      <p className="text-xs text-amber-700">
+                        Los productos con menos de 9 unidades se ocultan automáticamente del admin para mantener la lista limpia
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
                 <div className="overflow-y-auto max-h-[800px] relative border-collapse">
               <table className="w-full border-collapse table-fixed">
                 <thead className="bg-slate-50 sticky top-0 z-10">
@@ -3674,6 +3695,12 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                         ({filteredProductsInv.length} productos de {statsInv.totalProducts} totales)
                       </span>
                     )}
+                    <div className="mt-1 text-xs text-amber-600 flex items-center">
+                      <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      Productos con menos de 9 unidades se ocultan automáticamente
+                    </div>
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="text-xs text-slate-500">
