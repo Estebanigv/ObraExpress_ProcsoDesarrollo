@@ -1,1 +1,0 @@
-// Backup del archivo original antes de la reorganización completa

@@ -968,8 +968,8 @@ function CheckoutPageContent() {
                         <div className="relative h-32 bg-gray-100">
                           <Image
                             src={grupo.imagen || grupo.variantes[0]?.imagen || grupo.variantes[0]?.ruta_imagen || 
-                              (grupo.nombre?.includes('Perfil U') ? "/assets/images/productos/perfiles/perfil-u-policarbonato.webp" :
-                               grupo.nombre?.includes('Perfil Clip') ? "/assets/images/productos/perfiles/perfil-clip-policarbonato.webp" :
+                              (grupo.nombre?.includes('Perfil U') ? "/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp" :
+                               grupo.nombre?.includes('Perfil Clip') ? "/assets/images/Productos/Perfiles/perfil-clip-policarbonato.webp" :
                                `/images/${grupo.categoria_completa?.toLowerCase().replace(/\s+/g, '-')}-sample.jpg`)
                             }
                             alt={grupo.nombre}
@@ -1384,9 +1384,8 @@ function CheckoutPageContent() {
                         <CartThumbnail
                           src={item.imagen}
                           alt={item.nombre}
-                          width={48}
-                          height={48}
                           className="w-full h-full object-cover"
+                          productName={item.nombre}
                         />
                       </div>
                     )}
@@ -1471,9 +1470,8 @@ function CheckoutPageContent() {
                           <CartThumbnail
                             src={item.imagen}
                             alt={item.nombre}
-                            width={48}
-                            height={48}
                             className="w-full h-full object-cover"
+                            productName={item.nombre}
                           />
                         </div>
                       )}

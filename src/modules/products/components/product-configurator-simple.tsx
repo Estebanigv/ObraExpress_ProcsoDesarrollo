@@ -279,12 +279,12 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
       // Si no hay imagen válida, usar fallback según el tipo de producto
       if (!imagenParaCarrito || imagenParaCarrito.trim() === '' || imagenParaCarrito === 'undefined') {
         console.log('🔧 Configurador - Fallback activado para:', nombreCompleto, 'Categoría:', productGroup.categoria);
-        if (productGroup.categoria === 'Perfil U') {
-          imagenParaCarrito = '/assets/images/Productos/Perfiles/Perfil_U.webp';
-        } else if (productGroup.categoria === 'Perfil Clip Plano') {
-          imagenParaCarrito = '/assets/images/Productos/Perfiles/Perfil_Clip.webp';
+        if (productGroup.categoria === 'Perfiles Alveolar' && productGroup.nombre?.includes('Perfil U')) {
+          imagenParaCarrito = '/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp';
+        } else if (productGroup.categoria === 'Perfiles Alveolar' && productGroup.nombre?.includes('Perfil Clip')) {
+          imagenParaCarrito = '/assets/images/Productos/Perfiles/perfil-clip-policarbonato.webp';
         } else if (productGroup.categoria?.includes('Perfil') || nombreCompleto.includes('Perfil')) {
-          imagenParaCarrito = '/assets/images/Productos/Perfiles/Perfil_U.webp';
+          imagenParaCarrito = '/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp';
         } else if (nombreCompleto.includes('Ondulado')) {
           imagenParaCarrito = '/assets/images/Productos/Policarnato Ondulado/Policarbonato ondulado detalle.webp';
         } else if (nombreCompleto.includes('Alveolar')) {
@@ -461,9 +461,9 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
               if (productGroup.categoria === 'Perfiles Alveolar' || 
                   productGroup.nombre?.includes('Perfil')) {
                 if (productGroup.nombre?.includes('Perfil U') || selectedVariant.nombre?.includes('Perfil U')) {
-                  imagenFinal = "/assets/images/productos/perfiles/perfil-u-policarbonato.webp";
+                  imagenFinal = "/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp";
                 } else if (productGroup.nombre?.includes('Perfil H') || selectedVariant.nombre?.includes('Perfil H')) {
-                  imagenFinal = "/assets/images/productos/perfiles/perfil-h-policarbonato.webp";
+                  imagenFinal = "/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp";
                 } else if (productGroup.nombre?.includes('Perfil Clip') || selectedVariant.nombre?.includes('Perfil Clip')) {
                   imagenFinal = "/assets/images/productos/perfiles/perfil-clip-policarbonato.webp";
                 } else if (productGroup.nombre?.includes('Perfil Alveolar') || selectedVariant.nombre?.includes('Perfil Alveolar')) {

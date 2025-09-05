@@ -23,13 +23,13 @@ function getDefaultImage(tipo: string, color?: string): string {
       'default': '/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto.webp'
     },
     'Perfil U': {
-      'default': '/assets/images/Productos/Perfiles/Perfil_U.webp'
+      'default': '/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp'
     },
     'Perfil H': {
       'default': '/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp'
     },
     'Perfil Clip': {
-      'default': '/assets/images/Productos/Perfiles/Perfil_Clip.webp'
+      'default': '/assets/images/Productos/Perfiles/perfil-clip-policarbonato.webp'
     },
     'Perfil Clip Plano': {
       'default': '/assets/images/Productos/Perfiles/Perfil_Clip.webp'
@@ -307,19 +307,20 @@ export async function GET(request: NextRequest) {
                 if (categoria === 'Perfiles Alveolar' && producto.tipo === 'Perfil Alveolar') {
                   // Crear Perfil U con datos reales del Excel
                   if (variantesPublicas.length >= 2) {
-                    productosPublicos['Perfil U'] = productosPublicos['Perfil U'] || [];
-                    productosPublicos['Perfil U'].push({
+                    productosPublicos['Perfiles Alveolar'] = productosPublicos['Perfiles Alveolar'] || [];
+                    productosPublicos['Perfiles Alveolar'].push({
                       id: 'perfil-u',
                       nombre: 'Perfil U',
                       descripcion: 'Perfil U de policarbonato para cerrar extremos de paneles alveolares. Evita el ingreso de polvo, agua e insectos.',
-                      categoria: 'Perfil U',
+                      categoria: 'Perfiles Alveolar',
                       tipo: 'Perfil U',
+                      imagen: '/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp',
                       variantes: [
                         {
                           codigo: '114057501',
                           nombre: 'Perfil U Clear 0,02x1,05',
                           descripcion: 'Perfil U Clear 0,02x1,05',
-                          categoria: 'Perfil U',
+                          categoria: 'Perfiles Alveolar',
                           tipo: 'Perfil U',
                           espesor: '0,02',
                           ancho: '0,02',
@@ -329,7 +330,7 @@ export async function GET(request: NextRequest) {
                           precio_con_iva: 840,
                           stock: 100,
                           stock_disponible: 'Disponible',
-                          imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-u.webp',
+                          imagen: '/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp',
                           garantia: '10 años',
                           uv_protection: true
                         },
@@ -337,7 +338,7 @@ export async function GET(request: NextRequest) {
                           codigo: '114058501',
                           nombre: 'Perfil U Clear 0,02x2,1',
                           descripcion: 'Perfil U Clear 0,02x2,1',
-                          categoria: 'Perfil U',
+                          categoria: 'Perfiles Alveolar',
                           tipo: 'Perfil U',
                           espesor: '0,02',
                           ancho: '0,02',
@@ -347,7 +348,7 @@ export async function GET(request: NextRequest) {
                           precio_con_iva: 1698,
                           stock: 100,
                           stock_disponible: 'Disponible',
-                          imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-u.webp',
+                          imagen: '/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp',
                           garantia: '10 años',
                           uv_protection: true
                         },
@@ -355,7 +356,7 @@ export async function GET(request: NextRequest) {
                           codigo: '114057701',
                           nombre: 'Perfil U Clear 0,02x1,05',
                           descripcion: 'Perfil U Clear 0,02x1,05',
-                          categoria: 'Perfil U',
+                          categoria: 'Perfiles Alveolar',
                           tipo: 'Perfil U',
                           espesor: '0,02',
                           ancho: '0,02',
@@ -365,7 +366,7 @@ export async function GET(request: NextRequest) {
                           precio_con_iva: 947,
                           stock: 100,
                           stock_disponible: 'Disponible',
-                          imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-u.webp',
+                          imagen: '/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp',
                           garantia: '10 años',
                           uv_protection: true
                         },
@@ -373,7 +374,7 @@ export async function GET(request: NextRequest) {
                           codigo: '114058701',
                           nombre: 'Perfil U Clear 0,02x2,1',
                           descripcion: 'Perfil U Clear 0,02x2,1',
-                          categoria: 'Perfil U',
+                          categoria: 'Perfiles Alveolar',
                           tipo: 'Perfil U',
                           espesor: '0,02',
                           ancho: '0,02',
@@ -383,7 +384,7 @@ export async function GET(request: NextRequest) {
                           precio_con_iva: 3073,
                           stock: 100,
                           stock_disponible: 'Disponible',
-                          imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-u.webp',
+                          imagen: '/assets/images/Productos/Perfiles/perfil-u-policarbonato.webp',
                           garantia: '10 años',
                           uv_protection: true
                         }
@@ -392,19 +393,20 @@ export async function GET(request: NextRequest) {
                   }
                   
                   // Crear Perfil Clip Plano con datos reales del Excel
-                  productosPublicos['Perfil Clip Plano'] = productosPublicos['Perfil Clip Plano'] || [];
-                  productosPublicos['Perfil Clip Plano'].push({
+                  productosPublicos['Perfiles Alveolar'] = productosPublicos['Perfiles Alveolar'] || [];
+                  productosPublicos['Perfiles Alveolar'].push({
                     id: 'perfil-clip-plano',
                     nombre: 'Perfil Clip Plano',
                     descripcion: 'Perfil Clip Plano para unir paneles de policarbonato alveolar. Para uniones de policarbonatos alveolar en espesores de 4mm, 6mm, 8mm y 10mm.',
-                    categoria: 'Perfil Clip Plano',
+                    categoria: 'Perfiles Alveolar',
                     tipo: 'Perfil Clip Plano',
+                    imagen: '/assets/images/Productos/Perfiles/Perfil_Clip.webp',
                     variantes: [
                       {
                         codigo: '114078701',
                         nombre: 'Perfil Clip Plano Clear 0,055x2,9',
                         descripcion: 'Perfil Clip Plano Clear 0,055x2,9',
-                        categoria: 'Perfil Clip Plano',
+                        categoria: 'Perfiles Alveolar',
                         tipo: 'Perfil Clip Plano',
                         espesor: '0,055',
                         ancho: '0,055',
@@ -414,7 +416,7 @@ export async function GET(request: NextRequest) {
                         precio_con_iva: 9451,
                         stock: 100,
                         stock_disponible: 'Disponible',
-                        imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-clip.webp',
+                        imagen: '/assets/images/Productos/Perfiles/perfil-clip-policarbonato.webp',
                         garantia: '10 años',
                         uv_protection: true
                       },
@@ -422,7 +424,7 @@ export async function GET(request: NextRequest) {
                         codigo: '114080701',
                         nombre: 'Perfil Clip Plano Clear 0,055x5,8',
                         descripcion: 'Perfil Clip Plano Clear 0,055x5,8',
-                        categoria: 'Perfil Clip Plano',
+                        categoria: 'Perfiles Alveolar',
                         tipo: 'Perfil Clip Plano',
                         espesor: '0,055',
                         ancho: '0,055',
@@ -432,7 +434,7 @@ export async function GET(request: NextRequest) {
                         precio_con_iva: 18889,
                         stock: 100,
                         stock_disponible: 'Disponible',
-                        imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-clip.webp',
+                        imagen: '/assets/images/Productos/Perfiles/perfil-clip-policarbonato.webp',
                         garantia: '10 años',
                         uv_protection: true
                       },
@@ -440,7 +442,7 @@ export async function GET(request: NextRequest) {
                         codigo: '114081701',
                         nombre: 'Perfil Clip Plano Clear 0,055x8,7',
                         descripcion: 'Perfil Clip Plano Clear 0,055x8,7',
-                        categoria: 'Perfil Clip Plano',
+                        categoria: 'Perfiles Alveolar',
                         tipo: 'Perfil Clip Plano',
                         espesor: '0,055',
                         ancho: '0,055',
@@ -450,7 +452,7 @@ export async function GET(request: NextRequest) {
                         precio_con_iva: 28340,
                         stock: 100,
                         stock_disponible: 'Disponible',
-                        imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-clip.webp',
+                        imagen: '/assets/images/Productos/Perfiles/perfil-clip-policarbonato.webp',
                         garantia: '10 años',
                         uv_protection: true
                       },
@@ -458,7 +460,7 @@ export async function GET(request: NextRequest) {
                         codigo: '114082701',
                         nombre: 'Perfil Clip Plano Clear 0,055x11,6',
                         descripcion: 'Perfil Clip Plano Clear 0,055x11,6',
-                        categoria: 'Perfil Clip Plano',
+                        categoria: 'Perfiles Alveolar',
                         tipo: 'Perfil Clip Plano',
                         espesor: '0,055',
                         ancho: '0,055',
@@ -468,7 +470,7 @@ export async function GET(request: NextRequest) {
                         precio_con_iva: 37778,
                         stock: 100,
                         stock_disponible: 'Disponible',
-                        imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-clip.webp',
+                        imagen: '/assets/images/Productos/Perfiles/perfil-clip-policarbonato.webp',
                         garantia: '10 años',
                         uv_protection: true
                       }
@@ -530,10 +532,10 @@ export async function GET(request: NextRequest) {
         // Para perfiles, crear categorías separadas según el nombre del producto O tipo
         if ((producto.nombre && producto.nombre.includes('Perfil U')) || 
             (producto.tipo && producto.tipo.includes('Perfil U'))) {
-          categoriaCompleta = 'Perfil U';
+          categoriaCompleta = 'Perfiles Alveolar';
         } else if ((producto.nombre && (producto.nombre.includes('Perfil Clip') || producto.nombre.includes('Clip Plano'))) ||
                    (producto.tipo && (producto.tipo.includes('Perfil Clip') || producto.tipo.includes('Clip Plano')))) {
-          categoriaCompleta = 'Perfil Clip Plano';
+          categoriaCompleta = 'Perfiles Alveolar';
         } else if ((producto.nombre && producto.nombre.includes('Perfil H')) ||
                    (producto.tipo && producto.tipo.includes('Perfil H'))) {
           categoriaCompleta = 'Perfil H';
@@ -567,14 +569,11 @@ export async function GET(request: NextRequest) {
         } else if (tipo === 'Compacto') {
           descripcionDetallada = `Policarbonato compacto de alta transparencia y resistencia al impacto. Ideal para aplicaciones que requieren máxima claridad óptica.`;
           usos = ['Mamparas', 'Ventanas de seguridad', 'Cubiertas transparentes', 'Protecciones industriales'];
-        } else if (categoriaCompleta === 'Perfil U') {
-          descripcionDetallada = `Perfil U de policarbonato para cerrar los extremos de láminas alveolares. Protege del ingreso de polvo, insectos y humedad.`;
-          usos = ['Cierre de paneles alveolares', 'Acabado de bordes', 'Protección de extremos'];
-        } else if (categoriaCompleta === 'Perfil Clip Plano') {
-          descripcionDetallada = `Perfil Clip Plano para unir láminas de policarbonato alveolar. Permite una instalación rápida y segura sin necesidad de tornillos.`;
-          usos = ['Unión de paneles alveolares', 'Instalación rápida', 'Juntas flexibles'];
+        } else if (categoriaCompleta === 'Perfiles Alveolar') {
+          descripcionDetallada = `Perfiles especializados para instalación de policarbonato alveolar. Incluye perfiles U para cerrar extremos y perfiles clip para unir paneles.`;
+          usos = ['Cierre de paneles alveolares', 'Unión de paneles', 'Acabado profesional', 'Instalación rápida'];
         } else if (categoriaCompleta === 'Perfil H') {
-          descripcionDetallada = `Perfil H de policarbonato para unir láminas alveolares de manera continua. Proporciona un acabado profesional y estético.`;
+          descripcionDetallada = `Perfil para unir láminas alveolares de manera continua. Proporciona un acabado profesional y estético.`;
           usos = ['Unión de paneles alveolares', 'Acabado decorativo', 'Juntas estructurales'];
         } else {
           descripcionDetallada = `${categoriaCompleta} con alta calidad, garantía extendida y protección UV incluida.`;
@@ -638,8 +637,8 @@ export async function GET(request: NextRequest) {
         stock_disponible: producto.stock > 10 ? 'Disponible' : producto.stock > 0 ? 'Stock limitado' : 'Sin stock',
         
         // INFORMACIÓN ADICIONAL DEL PRODUCTO
-        imagen: (producto.ruta_imagen || getDefaultImage(categoriaCompleta, producto.color))?.replace('/Productos/', '/productos/'),
-        ruta_imagen: producto.ruta_imagen?.replace('/Productos/', '/productos/'),
+        imagen: (producto.ruta_imagen || getDefaultImage(categoriaCompleta, producto.color)),
+        ruta_imagen: producto.ruta_imagen,
         garantia: "10 años",
         uv_protection: true,
         
@@ -661,7 +660,7 @@ export async function GET(request: NextRequest) {
       
       // Actualizar imagen del grupo con la primera imagen válida encontrada
       if (producto.ruta_imagen && !productoExistente.imagen_principal) {
-        productoExistente.imagen_principal = producto.ruta_imagen.replace('/Productos/', '/productos/');
+        productoExistente.imagen_principal = producto.ruta_imagen;
       }
       
       // Actualizar imagen por defecto si no hay imagen principal
@@ -715,8 +714,7 @@ export async function GET(request: NextRequest) {
       'Policarbonato Alveolar',
       'Policarbonato Compacto', 
       'Policarbonato Ondulado',
-      'Perfil Clip Plano',
-      'Perfil U'
+      'Perfiles Alveolar'
     ];
 
     // Ordenar categorías según el orden deseado
