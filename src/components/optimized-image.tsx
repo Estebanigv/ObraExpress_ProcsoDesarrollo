@@ -45,6 +45,7 @@ export function OptimizedImage({
 
   // Si no hay src válido o si hay error, mostrar fallback
   if (imageError || !src || src.trim() === '') {
+    console.log('⚠️ OptimizedImage fallback activado:', { imageError, src, hasIcon: !!fallbackIcon });
     return (
       <div className={`flex items-center justify-center bg-gray-100 text-gray-400 ${className}`}>
         {fallbackIcon || (
@@ -145,24 +146,56 @@ export function CartThumbnail({
   productName?: string;
 }) {
   console.log('🎯 CartThumbnail ejecutándose:', { src, alt, productName });
+  console.log('🔍 Análisis de condiciones:', {
+    srcEmpty: !src || src === '' || src === 'undefined' || src === 'null',
+    includePerfilU: productName?.includes('Perfil U'),
+    includePerfilClip: productName?.includes('Perfil Clip'),
+    includePerfilGeneral: productName?.includes('Perfil')
+  });
   
   const enhancedAlt = productName 
     ? `Miniatura: ${productName} en carrito de compras`
     : `Miniatura: ${alt} en carrito`;
 
-  // Fallback para productos sin imagen
+  // Fallback para productos sin imagen - También activar si la imagen tiene problemas de carga
   let imageSrc = src;
-  if (!src || src === '' || src === 'undefined') {
+  let needsFallback = !src || src === '' || src === 'undefined' || src === 'null';
+  
+  // SIEMPRE usar fallback para perfiles para debugging
+  if (productName && productName.includes('Perfil')) {
+    needsFallback = true;
+    console.log('🔧 Forzando fallback para perfil:', productName);
+  }
+  
+  if (needsFallback) {
     console.log('🔧 Fallback activado para:', productName, 'src original:', src);
-    if (productName && productName.includes('Perfil U')) {
-      imageSrc = '/assets/images/Productos/Perfiles/Perfil_U.webp';
-      console.log('✅ Usando imagen Perfil U:', imageSrc);
-    } else if (productName && productName.includes('Perfil Clip')) {
-      imageSrc = '/assets/images/Productos/Perfiles/Perfil_Clip.webp';
-    } else if (productName && productName.includes('Perfil')) {
-      imageSrc = '/assets/images/Productos/Perfiles/Perfil_U.webp'; // Imagen por defecto para perfiles
+    if (productName) {
+      if (productName.includes('Perfil U')) {
+        imageSrc = '/assets/images/Productos/Perfiles/Perfil_U.webp';
+        console.log('✅ Usando imagen Perfil U:', imageSrc);
+      } else if (productName.includes('Perfil Clip')) {
+        imageSrc = '/assets/images/Productos/Perfiles/Perfil_Clip.webp';
+        console.log('✅ Usando imagen Perfil Clip:', imageSrc);
+      } else if (productName.includes('Perfil')) {
+        imageSrc = '/assets/images/Productos/Perfiles/Perfil_U.webp';
+        console.log('✅ Usando imagen Perfil genérico:', imageSrc);
+      } else if (productName.includes('Ondulado')) {
+        imageSrc = '/assets/images/Productos/Policarnato Ondulado/Policarbonato ondulado detalle.webp';
+        console.log('✅ Usando imagen Ondulado:', imageSrc);
+      } else if (productName.includes('Alveolar')) {
+        imageSrc = '/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar.webp';
+        console.log('✅ Usando imagen Alveolar:', imageSrc);
+      } else if (productName.includes('Compacto')) {
+        imageSrc = '/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto.webp';
+        console.log('✅ Usando imagen Compacto:', imageSrc);
+      } else {
+        imageSrc = '/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar.webp';
+        console.log('✅ Usando imagen por defecto:', imageSrc);
+      }
     }
   }
+  
+  console.log('🎯 Imagen final para', productName + ':', imageSrc);
 
   return (
     <OptimizedImage

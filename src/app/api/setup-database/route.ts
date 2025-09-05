@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase } = await import('@/lib/supabase');
     console.log('🔧 Configurando base de datos para sistema de ventas...');
 
     // Verificar si ya existen las tablas

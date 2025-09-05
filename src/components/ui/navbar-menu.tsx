@@ -26,7 +26,8 @@ export const MenuItem = ({
 }) => {
   return (
     <div 
-      onMouseEnter={() => setActive(item)} 
+      onMouseEnter={() => setActive(item)}
+      onMouseLeave={() => setActive(null)}
       className="relative group"
     >
       <motion.p
@@ -56,16 +57,6 @@ export const MenuItem = ({
           initial={{ opacity: 0, scale: 0.85, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={transition}
-          onMouseEnter={() => setActive(item)}
-          onMouseLeave={(e) => {
-            // Check if mouse is leaving to go to a sibling element
-            const rect = e.currentTarget.getBoundingClientRect();
-            const mouseY = e.clientY;
-            // If mouse is moving significantly down from the dropdown, close it
-            if (mouseY > rect.bottom + 50) {
-              setActive(null);
-            }
-          }}
         >
           {active === item && (
             <div className="absolute top-[calc(100%_+_0.5rem)] left-1/2 transform -translate-x-1/2 z-[60]">
@@ -75,7 +66,6 @@ export const MenuItem = ({
                 transition={transition}
                 layoutId="active" // layoutId ensures smooth animation
                 className="bg-white/95 backdrop-blur-md rounded-lg overflow-hidden border border-gray-200/50 shadow-2xl"
-                onMouseEnter={() => setActive(item)}
               >
                 <motion.div
                   layout // layout ensures smooth animation

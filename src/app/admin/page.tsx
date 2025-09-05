@@ -70,6 +70,7 @@ export default function AdminDashboard() {
   // Estados para filtros avanzados del inventario
   const [inventoryView, setInventoryView] = useState('summary'); // 'summary', 'detailed', 'grouped'
   const [selectedProvider, setSelectedProvider] = useState('all');
+  const [selectedProductInv, setSelectedProductInv] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState('todos'); // 'todos', 'visibles', 'ocultos', 'criticos', 'medios', 'sinstock'
   const [notifications, setNotifications] = useState({
     ocultos: false,
@@ -1091,7 +1092,7 @@ export default function AdminDashboard() {
 
     } catch (error) {
       console.error('Error en diagnóstico:', error);
-      setSyncStatus(`❌ Error crítico: ${error.message || 'Verificar conexión'}`);
+      setSyncStatus(`❌ Error crítico: ${(error as Error).message || 'Verificar conexión'}`);
     } finally {
       setIsSyncing(false);
       setSyncProgress(0);
@@ -1677,7 +1678,7 @@ export default function AdminDashboard() {
           
           // Mostrar detalles por pestaña solo de categorías activas
           if (result.reportePorPestaña) {
-            const detallesActivos = [];
+            const detallesActivos: string[] = [];
             Object.entries(result.reportePorPestaña).forEach(([pestaña, datos]: [string, any]) => {
               if (datos.totalProcesadas > 0 && categoriasActivas.includes(pestaña)) {
                 detallesActivos.push(`${pestaña}: ${datos.totalProcesadas}`);
@@ -1722,7 +1723,7 @@ export default function AdminDashboard() {
           // Mostrar errores específicos por pestaña si existen
           let errorMessage = errorData.error || 'Error desconocido';
           if (errorData.reportePorPestaña) {
-            const erroresPorPestaña = [];
+            const erroresPorPestaña: string[] = [];
             Object.entries(errorData.reportePorPestaña).forEach(([pestaña, datos]: [string, any]) => {
               if (datos.errorType === 'ESTRUCTURA' && datos.errores) {
                 erroresPorPestaña.push(`${pestaña}: ${datos.errores.join('; ')}`);
@@ -2005,7 +2006,7 @@ export default function AdminDashboard() {
           
           // FILTRO AUTOMÁTICO: Ocultar productos con stock menor a 9 unidades
           try {
-            const stock = parseInt(v.stock) || 0;
+            const stock = parseInt(String(v.stock)) || 0;
             if (stock < 9) return false;
           } catch (error) {
             console.warn('Error al evaluar stock para producto:', v.codigo, error);
@@ -2380,7 +2381,7 @@ export default function AdminDashboard() {
           'Nombre': getProductBaseName(v.nombre, v),
           'Tipo': product.tipo || v.tipo || 'N/A',
           'Espesor milímetros': v.espesor,
-          'Ancho': v.ancho || parseFloat(v.dimensiones)?.toFixed(2) || 'N/A',
+          'Ancho': v.ancho || (v.dimensiones ? parseFloat(v.dimensiones).toFixed(2) : 'N/A'),
           'Largo': v.largo || 'N/A',
           'Color': v.color,
           'Precio Neto': v.precio_neto,
@@ -2459,7 +2460,7 @@ export default function AdminDashboard() {
                 Recargar Datos
               </button>
               <button
-                onClick={handleSync}
+                onClick={() => handleSync()}
                 disabled={isSyncing}
                 className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
               >
@@ -3213,7 +3214,7 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                           const result = await response.json();
                           if (result.success) {
                             const samples = result.stats.sampleProducts || [];
-                            const sampleInfo = samples.map(p => 
+                            const sampleInfo = samples.map((p: any) => 
                               `SKU: ${p.codigo} | Tipo: ${p.tipo} | Ancho: ${p.ancho} | Stock: ${p.stock}`
                             ).join('\n');
                             
@@ -3222,7 +3223,7 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                             alert(`❌ Error en Supabase: ${result.error}`);
                           }
                         } catch (error) {
-                          alert(`💥 Error verificando Supabase: ${error.message}`);
+                          alert(`💥 Error verificando Supabase: ${(error as Error).message}`);
                         }
                       }}
                       className="w-10 h-10 flex items-center justify-center bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-all"
@@ -3400,20 +3401,20 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                       Tipo
                     </th>
                     {/* Columna Espesor - Solo si hay productos con espesor */}
-                    {filteredProductsInv.some(p => p.variantes.some(v => v.espesor && v.espesor !== '' && v.espesor !== '0' && v.espesor !== 'N/A')) && (
+                    {filteredProductsInv.some(p => p.variantes.some((v: any) => v.espesor && v.espesor !== '' && v.espesor !== '0' && v.espesor !== 'N/A')) && (
                       <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[50px]">
                         Esp.
                       </th>
                     )}
                     {/* Columna Ancho - Solo si hay productos con ancho */}
-                    {filteredProductsInv.some(p => p.variantes.some(v => v.ancho && v.ancho !== '' && v.ancho !== 'N/A')) && (
+                    {filteredProductsInv.some(p => p.variantes.some((v: any) => v.ancho && v.ancho !== '' && v.ancho !== 'N/A')) && (
                       <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[60px]">
                         <div>Ancho</div>
                         <div className="text-xs text-slate-500 normal-case font-normal">mm</div>
                       </th>
                     )}
                     {/* Columna Largo - Solo si hay productos con largo */}
-                    {filteredProductsInv.some(p => p.variantes.some(v => v.largo && v.largo !== '' && v.largo !== 'N/A')) && (
+                    {filteredProductsInv.some(p => p.variantes.some((v: any) => v.largo && v.largo !== '' && v.largo !== 'N/A')) && (
                       <th className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wide border border-slate-200 bg-slate-100 w-[60px]">
                         <div>Largo</div>
                         <div className="text-xs text-slate-500 normal-case font-normal">mts</div>
@@ -3509,7 +3510,7 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                         </td>
                         
                         {/* Espesor milímetros - Solo si hay productos con espesor */}
-                        {filteredProductsInv.some(p => p.variantes.some(v => v.espesor && v.espesor !== '' && v.espesor !== '0' && v.espesor !== 'N/A')) && (
+                        {filteredProductsInv.some(p => p.variantes.some((v: any) => v.espesor && v.espesor !== '' && v.espesor !== '0' && v.espesor !== 'N/A')) && (
                           <td className="px-3 py-3 border border-slate-200 bg-white text-center">
                             <div className="text-slate-900 font-semibold">
                               {(() => {
@@ -3528,7 +3529,7 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                         )}
                         
                         {/* Ancho - Solo si hay productos con ancho */}
-                        {filteredProductsInv.some(p => p.variantes.some(v => v.ancho && v.ancho !== '' && v.ancho !== 'N/A')) && (
+                        {filteredProductsInv.some(p => p.variantes.some((v: any) => v.ancho && v.ancho !== '' && v.ancho !== 'N/A')) && (
                           <td className="px-3 py-3 border border-slate-200 bg-white text-center">
                             {(() => {
                               const dimension = detectarUnidadDimension(variant.ancho, variant.tipo, variant.categoria, 'ancho');
@@ -3547,7 +3548,7 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                         )}
                         
                         {/* Largo - Solo si hay productos con largo */}
-                        {filteredProductsInv.some(p => p.variantes.some(v => v.largo && v.largo !== '' && v.largo !== 'N/A')) && (
+                        {filteredProductsInv.some(p => p.variantes.some((v: any) => v.largo && v.largo !== '' && v.largo !== 'N/A')) && (
                           <td className="px-3 py-3 border border-slate-200 bg-white text-center">
                             {(() => {
                               const dimension = detectarUnidadDimension(variant.largo, variant.tipo, variant.categoria, 'largo');
@@ -3781,7 +3782,7 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                         {variant.espesor}mm
                       </span>
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">
-                        {formatDimension(variant.dimensiones)}
+                        {formatDimension(variant.dimensiones || '')}
                       </span>
                     </div>
                     
@@ -5027,7 +5028,7 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                   <div className="p-5">
                     <div className="space-y-3">
                       <button 
-                        onClick={handleSync}
+                        onClick={() => handleSync()}
                         disabled={isSyncing}
                         className={`w-full py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
                           isSyncing 
@@ -6518,7 +6519,7 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <div className="text-sm text-blue-600 font-medium">Stock Disponible</div>
-                  <div className="text-2xl font-bold text-blue-900">{stockMetrics.totalStock.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-blue-900">{productosData.reduce((sum: number, p: any) => sum + (p.stock || 0), 0).toLocaleString()}</div>
                   <div className="text-xs text-blue-500">unidades en inventario</div>
                 </div>
                 <div className="bg-green-50 p-4 rounded-lg">
@@ -6628,32 +6629,7 @@ Por categoría: ${JSON.stringify(data.porCategoria, null, 2)}`);
           <div className="space-y-6">
             {/* Header del Panel de IA */}
             <AdminCard 
-              title={
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <span>Sistema de Inteligencia Artificial</span>
-                  <InfoTooltip 
-                    title="Centro de Inteligencia Artificial ObraExpress"
-                    description="Plataforma integrada de IA que centraliza analíticas predictivas, optimización de inventario y asistencia inteligente para potenciar tu negocio."
-                    details={[
-                      "Combina 4 módulos de IA especializados",
-                      "Procesa datos en tiempo real y genera insights",
-                      "Proporciona recomendaciones accionables automáticamente",
-                      "Se adapta y mejora con el uso continuo"
-                    ]}
-                    benefits={[
-                      "Reduce tiempo de análisis manual en 80%",
-                      "Mejora precisión en toma de decisiones",
-                      "Aumenta rentabilidad del inventario",
-                      "Automatiza procesos repetitivos"
-                    ]}
-                  />
-                </div>
-              }
+              title="🤖 Sistema de Inteligencia Artificial"
             >
               <div className="space-y-4">
                 {aiError && (
@@ -7281,7 +7257,7 @@ function ReportsManagementSection() {
   };
 
   const currentData = reportData[selectedReportType];
-  const periodData = selectedReportType === 'ventas' ? currentData[selectedPeriod] : currentData;
+  const periodData = selectedReportType === 'ventas' ? (currentData as any)[selectedPeriod] : currentData;
 
   const handleExportReport = async (format: 'excel' | 'pdf') => {
     setGeneratingReport(true);
@@ -7448,7 +7424,7 @@ function ReportsManagementSection() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {periodData.topProductos.map((producto, index) => (
+                  {periodData.topProductos.map((producto: any, index: any) => (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                         #{index + 1}
@@ -7482,7 +7458,7 @@ function ReportsManagementSection() {
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">🏆 Productos Más Vendidos</h3>
               <div className="space-y-3">
-                {reportData.productos.masVendidos.map((producto, index) => (
+                {reportData.productos.masVendidos.map((producto: any, index: any) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="text-lg font-bold text-gray-400">#{index + 1}</div>

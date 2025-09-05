@@ -302,6 +302,183 @@ export async function GET(request: NextRequest) {
                 if (!productosPublicos[categoria]) {
                   productosPublicos[categoria] = [];
                 }
+                
+                // CREAR SOLO PERFIL U Y PERFIL CLIP CON DATOS REALES
+                if (categoria === 'Perfiles Alveolar' && producto.tipo === 'Perfil Alveolar') {
+                  // Crear Perfil U con datos reales del Excel
+                  if (variantesPublicas.length >= 2) {
+                    productosPublicos['Perfil U'] = productosPublicos['Perfil U'] || [];
+                    productosPublicos['Perfil U'].push({
+                      id: 'perfil-u',
+                      nombre: 'Perfil U',
+                      descripcion: 'Perfil U de policarbonato para cerrar extremos de paneles alveolares. Evita el ingreso de polvo, agua e insectos.',
+                      categoria: 'Perfil U',
+                      tipo: 'Perfil U',
+                      variantes: [
+                        {
+                          codigo: '114057501',
+                          nombre: 'Perfil U Clear 0,02x1,05',
+                          descripcion: 'Perfil U Clear 0,02x1,05',
+                          categoria: 'Perfil U',
+                          tipo: 'Perfil U',
+                          espesor: '0,02',
+                          ancho: '0,02',
+                          largo: '1,05',
+                          color: 'Clear',
+                          uso: 'Se usa principalmente para el cierre de los extremos del policarbonato alveolar. Evita el ingreso de polvo, agua e insectos.',
+                          precio_con_iva: 840,
+                          stock: 100,
+                          stock_disponible: 'Disponible',
+                          imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-u.webp',
+                          garantia: '10 años',
+                          uv_protection: true
+                        },
+                        {
+                          codigo: '114058501',
+                          nombre: 'Perfil U Clear 0,02x2,1',
+                          descripcion: 'Perfil U Clear 0,02x2,1',
+                          categoria: 'Perfil U',
+                          tipo: 'Perfil U',
+                          espesor: '0,02',
+                          ancho: '0,02',
+                          largo: '2,1',
+                          color: 'Clear',
+                          uso: 'Se usa principalmente para el cierre de los extremos del policarbonato alveolar. Evita el ingreso de polvo, agua e insectos.',
+                          precio_con_iva: 1698,
+                          stock: 100,
+                          stock_disponible: 'Disponible',
+                          imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-u.webp',
+                          garantia: '10 años',
+                          uv_protection: true
+                        },
+                        {
+                          codigo: '114057701',
+                          nombre: 'Perfil U Clear 0,02x1,05',
+                          descripcion: 'Perfil U Clear 0,02x1,05',
+                          categoria: 'Perfil U',
+                          tipo: 'Perfil U',
+                          espesor: '0,02',
+                          ancho: '0,02',
+                          largo: '1,05',
+                          color: 'Clear',
+                          uso: 'Se usa principalmente para el cierre de los extremos del policarbonato alveolar. Evita el ingreso de polvo, agua e insectos.',
+                          precio_con_iva: 947,
+                          stock: 100,
+                          stock_disponible: 'Disponible',
+                          imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-u.webp',
+                          garantia: '10 años',
+                          uv_protection: true
+                        },
+                        {
+                          codigo: '114058701',
+                          nombre: 'Perfil U Clear 0,02x2,1',
+                          descripcion: 'Perfil U Clear 0,02x2,1',
+                          categoria: 'Perfil U',
+                          tipo: 'Perfil U',
+                          espesor: '0,02',
+                          ancho: '0,02',
+                          largo: '2,1',
+                          color: 'Clear',
+                          uso: 'Se usa principalmente para el cierre de los extremos del policarbonato alveolar. Evita el ingreso de polvo, agua e insectos.',
+                          precio_con_iva: 3073,
+                          stock: 100,
+                          stock_disponible: 'Disponible',
+                          imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-u.webp',
+                          garantia: '10 años',
+                          uv_protection: true
+                        }
+                      ]
+                    });
+                  }
+                  
+                  // Crear Perfil Clip Plano con datos reales del Excel
+                  productosPublicos['Perfil Clip Plano'] = productosPublicos['Perfil Clip Plano'] || [];
+                  productosPublicos['Perfil Clip Plano'].push({
+                    id: 'perfil-clip-plano',
+                    nombre: 'Perfil Clip Plano',
+                    descripcion: 'Perfil Clip Plano para unir paneles de policarbonato alveolar. Para uniones de policarbonatos alveolar en espesores de 4mm, 6mm, 8mm y 10mm.',
+                    categoria: 'Perfil Clip Plano',
+                    tipo: 'Perfil Clip Plano',
+                    variantes: [
+                      {
+                        codigo: '114078701',
+                        nombre: 'Perfil Clip Plano Clear 0,055x2,9',
+                        descripcion: 'Perfil Clip Plano Clear 0,055x2,9',
+                        categoria: 'Perfil Clip Plano',
+                        tipo: 'Perfil Clip Plano',
+                        espesor: '0,055',
+                        ancho: '0,055',
+                        largo: '2,9',
+                        color: 'Clear',
+                        uso: 'Para uniones de policarbonatos alveolar en espesores de 4mm, 6mm, 8mm y 10mm. Sistema de instalación rápida.',
+                        precio_con_iva: 9451,
+                        stock: 100,
+                        stock_disponible: 'Disponible',
+                        imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-clip.webp',
+                        garantia: '10 años',
+                        uv_protection: true
+                      },
+                      {
+                        codigo: '114080701',
+                        nombre: 'Perfil Clip Plano Clear 0,055x5,8',
+                        descripcion: 'Perfil Clip Plano Clear 0,055x5,8',
+                        categoria: 'Perfil Clip Plano',
+                        tipo: 'Perfil Clip Plano',
+                        espesor: '0,055',
+                        ancho: '0,055',
+                        largo: '5,8',
+                        color: 'Clear',
+                        uso: 'Para uniones de policarbonatos alveolar en espesores de 4mm, 6mm, 8mm y 10mm. Sistema de instalación rápida.',
+                        precio_con_iva: 18889,
+                        stock: 100,
+                        stock_disponible: 'Disponible',
+                        imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-clip.webp',
+                        garantia: '10 años',
+                        uv_protection: true
+                      },
+                      {
+                        codigo: '114081701',
+                        nombre: 'Perfil Clip Plano Clear 0,055x8,7',
+                        descripcion: 'Perfil Clip Plano Clear 0,055x8,7',
+                        categoria: 'Perfil Clip Plano',
+                        tipo: 'Perfil Clip Plano',
+                        espesor: '0,055',
+                        ancho: '0,055',
+                        largo: '8,7',
+                        color: 'Clear',
+                        uso: 'Para uniones de policarbonatos alveolar en espesores de 4mm, 6mm, 8mm y 10mm. Sistema de instalación rápida.',
+                        precio_con_iva: 28340,
+                        stock: 100,
+                        stock_disponible: 'Disponible',
+                        imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-clip.webp',
+                        garantia: '10 años',
+                        uv_protection: true
+                      },
+                      {
+                        codigo: '114082701',
+                        nombre: 'Perfil Clip Plano Clear 0,055x11,6',
+                        descripcion: 'Perfil Clip Plano Clear 0,055x11,6',
+                        categoria: 'Perfil Clip Plano',
+                        tipo: 'Perfil Clip Plano',
+                        espesor: '0,055',
+                        ancho: '0,055',
+                        largo: '11,6',
+                        color: 'Clear',
+                        uso: 'Para uniones de policarbonatos alveolar en espesores de 4mm, 6mm, 8mm y 10mm. Sistema de instalación rápida.',
+                        precio_con_iva: 37778,
+                        stock: 100,
+                        stock_disponible: 'Disponible',
+                        imagen: '/assets/images/Productos/Perfiles Alveolar/perfil-clip.webp',
+                        garantia: '10 años',
+                        uv_protection: true
+                      }
+                    ]
+                  });
+                  
+                  // NO agregar la categoría genérica "Perfiles Alveolar"
+                  return; // Salir sin agregar la categoría genérica
+                }
+                
                 productosPublicos[categoria].push({
                   ...producto,
                   variantes: variantesPublicas
@@ -350,14 +527,19 @@ export async function GET(request: NextRequest) {
       // Crear categoria completa para agrupación, evitando duplicaciones
       let categoriaCompleta;
       if (categoria === 'Perfiles Alveolar') {
-        // Para perfiles, crear categorías separadas según el nombre del producto
-        if (producto.nombre && producto.nombre.includes('Perfil U')) {
+        // Para perfiles, crear categorías separadas según el nombre del producto O tipo
+        if ((producto.nombre && producto.nombre.includes('Perfil U')) || 
+            (producto.tipo && producto.tipo.includes('Perfil U'))) {
           categoriaCompleta = 'Perfil U';
-        } else if (producto.nombre && (producto.nombre.includes('Perfil Clip') || producto.nombre.includes('Clip Plano'))) {
+        } else if ((producto.nombre && (producto.nombre.includes('Perfil Clip') || producto.nombre.includes('Clip Plano'))) ||
+                   (producto.tipo && (producto.tipo.includes('Perfil Clip') || producto.tipo.includes('Clip Plano')))) {
           categoriaCompleta = 'Perfil Clip Plano';
+        } else if ((producto.nombre && producto.nombre.includes('Perfil H')) ||
+                   (producto.tipo && producto.tipo.includes('Perfil H'))) {
+          categoriaCompleta = 'Perfil H';
         } else {
-          // Fallback para otros perfiles
-          categoriaCompleta = `${categoria} - ${tipo}`;
+          // Para otros perfiles de la categoría Perfiles Alveolar, usar el tipo como categoría
+          categoriaCompleta = producto.tipo || 'Perfil Alveolar';
         }
       } else {
         // Para policarbonatos, usar "Policarbonato Tipo"
@@ -391,6 +573,9 @@ export async function GET(request: NextRequest) {
         } else if (categoriaCompleta === 'Perfil Clip Plano') {
           descripcionDetallada = `Perfil Clip Plano para unir láminas de policarbonato alveolar. Permite una instalación rápida y segura sin necesidad de tornillos.`;
           usos = ['Unión de paneles alveolares', 'Instalación rápida', 'Juntas flexibles'];
+        } else if (categoriaCompleta === 'Perfil H') {
+          descripcionDetallada = `Perfil H de policarbonato para unir láminas alveolares de manera continua. Proporciona un acabado profesional y estético.`;
+          usos = ['Unión de paneles alveolares', 'Acabado decorativo', 'Juntas estructurales'];
         } else {
           descripcionDetallada = `${categoriaCompleta} con alta calidad, garantía extendida y protección UV incluida.`;
           usos = ['Uso general', 'Construcción', 'Industria'];
@@ -507,7 +692,7 @@ export async function GET(request: NextRequest) {
         
         // Asegurar que hay imagen del grupo
         if (!grupo.imagen && !grupo.imagen_principal) {
-          grupo.imagen = getDefaultImage(grupo.tipo, colores[0] || 'default');
+          grupo.imagen = getDefaultImage(grupo.tipo, String(colores[0] || 'default'));
         }
         
         // Si hay imagen principal, usar esa como imagen del grupo

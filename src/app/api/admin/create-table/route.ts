@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: false,
           error: 'No se pudo verificar/crear la tabla',
-          details: fallbackError.message
+          details: (fallbackError as Error).message
         }, { status: 500 });
       }
     }

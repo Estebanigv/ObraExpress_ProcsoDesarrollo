@@ -54,11 +54,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Separar productos disponibles y no disponibles
-    const disponibles = todosLosProductos.filter(p => p.disponible_en_web);
-    const noDisponibles = todosLosProductos.filter(p => !p.disponible_en_web);
+    const disponibles = (todosLosProductos as any[]).filter((p: any) => p.disponible_en_web);
+    const noDisponibles = (todosLosProductos as any[]).filter((p: any) => !p.disponible_en_web);
 
     // Analizar productos no disponibles con detalles
-    const noDisponiblesDetallados = noDisponibles.map(producto => {
+    const noDisponiblesDetallados = noDisponibles.map((producto: any) => {
       const motivos = [];
       const valoresRaw = {
         espesor_raw: producto.espesor || 'VACÍO',

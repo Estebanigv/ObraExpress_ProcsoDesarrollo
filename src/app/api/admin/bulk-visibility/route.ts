@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let query = supabase.from('productos');
+    let query: any = supabase.from('productos');
 
     // Construir la consulta según los filtros
     if (categoria && categoria !== 'all') {

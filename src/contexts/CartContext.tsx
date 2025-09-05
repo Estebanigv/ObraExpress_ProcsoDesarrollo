@@ -10,6 +10,7 @@ export interface CartItem {
   tipo: 'coordinacion' | 'producto'; // Para diferenciar servicios de productos
   nombre: string;
   descripcion: string;
+  categoria?: string; // Categoría del producto (ej: "Policarbonato Compacto", "Policarbonato Alveolar")
   imagen?: string; // URL de la imagen del producto
   especificaciones?: string[];
   cantidad: number;

@@ -206,6 +206,53 @@ export default function AdminHeader({
               </button>
             )}
 
+            {/* Enlaces Rápidos Admin */}
+            <div className="relative group">
+              <button className="p-2 text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-lg transition-all">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </button>
+              
+              {/* Dropdown de enlaces rápidos */}
+              <div className="absolute right-0 top-12 bg-white border border-gray-200 rounded-lg shadow-xl py-2 w-56 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                <div className="px-3 py-2 border-b border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-900">Enlaces Rápidos</h4>
+                </div>
+                
+                <Link
+                  href="/admin"
+                  className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
+                  </svg>
+                  <span>Panel Principal</span>
+                </Link>
+                
+                <Link
+                  href="/admin/control-supabase"
+                  className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                  </svg>
+                  <span>Control Supabase</span>
+                </Link>
+                
+                <Link
+                  href="/admin/ordenes"
+                  className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4l1-12z" />
+                  </svg>
+                  <span>Gestión de Órdenes</span>
+                </Link>
+              </div>
+            </div>
+
             {/* Botón Volver al Sitio */}
             <Link
               href="/"

@@ -34,11 +34,33 @@ export const BuscadorGlobal: React.FC<BuscadorGlobalProps> = ({
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Cargar productos desde la API
+  // Cargar productos desde la API - TEMPORALMENTE DESACTIVADO
   useEffect(() => {
+    console.log('🚫 BuscadorGlobal: carga de productos temporalmente desactivada');
+    // TODO: Reactivar cuando se solucione el problema de Supabase
+    return;
+    
+    /* CÓDIGO ORIGINAL COMENTADO PARA EVITAR CARGA INFINITA
+    let retryCount = 0;
+    const maxRetries = 3;
+    let timeoutId: NodeJS.Timeout;
+    
     const loadProducts = async () => {
       try {
-        const response = await fetch('/api/productos-publico');
+        console.log(`🔍 Intentando cargar productos (intento ${retryCount + 1}/${maxRetries + 1})`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const response = await fetch('/api/productos-publico', {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
         if (response.ok) {
           const data = await response.json();
           const index: SearchResult[] = [];
@@ -61,13 +83,36 @@ export const BuscadorGlobal: React.FC<BuscadorGlobalProps> = ({
           }
           
           setSearchIndex(index);
+          console.log(`✅ Productos cargados exitosamente: ${index.length} productos`);
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
       } catch (error) {
-        console.error('Error cargando productos para búsqueda:', error);
+        console.error(`❌ Error cargando productos (intento ${retryCount + 1}):`, error);
+        
+        // Solo reintentar si no es un error de abort y no hemos alcanzado el máximo de reintentos
+        if (error instanceof Error && error.name !== 'AbortError' && retryCount < maxRetries) {
+          retryCount++;
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff, máximo 10s
+          console.log(`🔄 Reintentando en ${delay}ms...`);
+          timeoutId = setTimeout(() => {
+            loadProducts();
+          }, delay);
+        } else {
+          console.warn('🚫 Máximo de reintentos alcanzado o operación cancelada. El buscador funcionará sin productos cargados.');
+        }
       }
     };
 
     loadProducts();
+    
+    // Cleanup function
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+    */
   }, []);
 
   // Función para resaltar texto

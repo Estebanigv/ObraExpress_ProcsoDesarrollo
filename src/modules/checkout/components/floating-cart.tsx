@@ -17,9 +17,53 @@ function CartModal() {
   const [isClosing, setIsClosing] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isButtonAnimating, setIsButtonAnimating] = useState(false);
-  const [savedScrollPosition, setSavedScrollPosition] = useState(0);
+  const [savedScrollPosition, setSavedScrollPosition] = useState<number | null>(null);
 
   logger.log('🛒 FloatingCart render - items:', state.items.length, 'isOpen:', state.isOpen);
+  
+  // Función para detectar si es Policarbonato Compacto (único con mínimo de 1 unidad)
+  const isPolicarbonatoCompacto = (item: any) => {
+    console.log('🔍 Checking item for compacto detection:', {
+      nombre: item.nombre,
+      categoria: item.categoria,
+      descripcion: item.descripcion,
+      id: item.id,
+      precioUnitario: item.precioUnitario,
+      total: item.total,
+      cantidad: item.cantidad,
+      calculatedPrice: item.total / item.cantidad
+    });
+    
+    // Método más simple y directo: Si tiene cantidad = 1 y es policarbonato, probablemente es compacto
+    // Ya que los otros productos vienen en múltiplos de 10
+    if (item.cantidad === 1) {
+      const nombreLower = (item.nombre || '').toLowerCase();
+      const categoriaLower = (item.categoria || '').toLowerCase();
+      
+      const esPolicarbonato = nombreLower.includes('policarbonato') || categoriaLower.includes('policarbonato');
+      console.log('🎯 Single unit policarbonato detected as compacto:', esPolicarbonato);
+      return esPolicarbonato;
+    }
+    
+    // Método de precio: productos > $15,000 por unidad probablemente son compactos
+    const precioUnitario = item.precioUnitario || (item.total / item.cantidad) || 0;
+    if (precioUnitario > 15000) {
+      console.log('🎯 High price unit detected as compacto:', precioUnitario);
+      return true;
+    }
+    
+    // Método tradicional: buscar "compacto" en el texto
+    const nombreLower = (item.nombre || '').toLowerCase();
+    const categoriaLower = (item.categoria || '').toLowerCase();
+    const descripcionLower = (item.descripcion || '').toLowerCase();
+    
+    const tieneCompacto = nombreLower.includes('compacto') || 
+                         categoriaLower.includes('compacto') || 
+                         descripcionLower.includes('compacto');
+    
+    console.log('🎯 Text-based compacto detection:', tieneCompacto);
+    return tieneCompacto;
+  };
   
   // Calcular totales con descuento de usuario
   const subtotal = state.items.reduce((sum, item) => sum + item.total, 0);
@@ -55,6 +99,9 @@ function CartModal() {
 
   // Detectar si estamos en el cotizador guiado por IA
   const isOnCotizadorIA = pathname === '/cotizador-detallado';
+  
+  // Detectar si estamos en el homepage
+  const isOnHomepage = pathname === '/';
 
   // Manejar apertura del modal
   useEffect(() => {
@@ -68,47 +115,134 @@ function CartModal() {
 
   // Bloquear scroll cuando el modal está abierto
   useEffect(() => {
-    if (isVisible) {
-      // Guardar la posición actual del scroll
+    if (isVisible && savedScrollPosition === null) {
+      // Solo guardar la posición si no se ha guardado aún
       const currentScrollY = window.scrollY;
       setSavedScrollPosition(currentScrollY);
-      const body = document.body;
       
-      // Aplicar estilos para prevenir el salto
-      body.style.position = 'fixed';
-      body.style.top = `-${currentScrollY}px`;
-      body.style.width = '100%';
-      body.style.left = '0';
-      body.style.right = '0';
-    } else {
-      // Restaurar la posición del scroll
-      const body = document.body;
-      body.style.position = '';
-      body.style.top = '';
-      body.style.width = '';
-      body.style.left = '';
-      body.style.right = '';
+      console.log('🛒 Cart opening - Current scroll position:', currentScrollY, 'Homepage:', isOnHomepage);
       
-      // Usar requestAnimationFrame para asegurar que el scroll se restaure correctamente
-      requestAnimationFrame(() => {
-        window.scrollTo(0, savedScrollPosition);
-      });
+      // Para homepage, usar técnica más agresiva
+      if (isOnHomepage) {
+        setTimeout(() => {
+          const body = document.body;
+          const html = document.documentElement;
+          
+          // Técnica más agresiva para homepage
+          body.style.position = 'fixed';
+          body.style.top = `-${currentScrollY}px`;
+          body.style.width = '100%';
+          body.style.left = '0';
+          body.style.right = '0';
+          body.style.overflow = 'hidden';
+          html.style.overflow = 'hidden';
+          html.style.position = 'fixed';
+          html.style.top = `-${currentScrollY}px`;
+          html.style.width = '100%';
+          
+          console.log('🛒 Homepage scroll locked at:', currentScrollY);
+        }, 0);
+      } else {
+        // Técnica normal para otras páginas
+        setTimeout(() => {
+          const body = document.body;
+          const html = document.documentElement;
+          
+          body.style.position = 'fixed';
+          body.style.top = `-${currentScrollY}px`;
+          body.style.width = '100%';
+          body.style.left = '0';
+          body.style.right = '0';
+          body.style.overflow = 'hidden';
+          html.style.overflow = 'hidden';
+        }, 0);
+      }
+    } else if (!isVisible && savedScrollPosition !== null) {
+      console.log('🛒 Cart closing - Restoring scroll to:', savedScrollPosition, 'Homepage:', isOnHomepage);
+      
+      // Restaurar la posición del scroll - diferente para homepage
+      const body = document.body;
+      const html = document.documentElement;
+      
+      if (isOnHomepage) {
+        // Restauración más agresiva para homepage
+        body.style.position = '';
+        body.style.top = '';
+        body.style.width = '';
+        body.style.left = '';
+        body.style.right = '';
+        body.style.overflow = '';
+        html.style.overflow = '';
+        html.style.position = '';
+        html.style.top = '';
+        html.style.width = '';
+        
+        // Múltiples intentos de restauración para homepage
+        const restore = () => {
+          window.scrollTo({
+            top: savedScrollPosition,
+            left: 0,
+            behavior: 'instant'
+          });
+          console.log('🛒 Homepage scroll restored to:', window.scrollY);
+        };
+        
+        restore();
+        requestAnimationFrame(restore);
+        setTimeout(restore, 10);
+        setTimeout(restore, 50);
+        setTimeout(restore, 100);
+        
+      } else {
+        // Restauración normal para otras páginas
+        body.style.position = '';
+        body.style.top = '';
+        body.style.width = '';
+        body.style.left = '';
+        body.style.right = '';
+        body.style.overflow = '';
+        html.style.overflow = '';
+        
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: savedScrollPosition,
+            left: 0,
+            behavior: 'instant'
+          });
+          
+          setTimeout(() => {
+            if (window.scrollY !== savedScrollPosition) {
+              window.scrollTo(0, savedScrollPosition);
+            }
+          }, 10);
+        });
+      }
+      
+      // Limpiar la posición guardada después de restaurar
+      setTimeout(() => {
+        setSavedScrollPosition(null);
+      }, 200);
     }
 
     return () => {
-      // Limpiar estilos al desmontar si es necesario
-      if (document.body.style.position === 'fixed') {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.left = '';
-        document.body.style.right = '';
-        requestAnimationFrame(() => {
-          window.scrollTo(0, savedScrollPosition);
-        });
+      // Limpiar estilos al desmontar - más agresivo para homepage
+      const body = document.body;
+      const html = document.documentElement;
+      
+      if (body.style.position === 'fixed' || html.style.position === 'fixed') {
+        body.style.position = '';
+        body.style.top = '';
+        body.style.width = '';
+        body.style.left = '';
+        body.style.right = '';
+        body.style.overflow = '';
+        html.style.overflow = '';
+        html.style.position = '';
+        html.style.top = '';
+        html.style.width = '';
       }
     };
-  }, [isVisible, savedScrollPosition]);
+  }, [isVisible, isOnHomepage]); // Removido savedScrollPosition de las dependencias
 
   return (
     <>
@@ -433,7 +567,7 @@ function CartModal() {
                   animation: 'content-fade-in 0.5s ease-out 0.3s both'
                 }}
               >
-                <div className="text-center max-w-sm">
+                <div className="text-center max-w-sm mx-auto">
                   <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg 
                       xmlns="http://www.w3.org/2000/svg" 
@@ -456,11 +590,15 @@ function CartModal() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      router.push('/productos');
                       handleClose();
                     }}
-                    className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-105"
+                    className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
                   >
-                    Continuar Navegando
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <span>Ver Productos</span>
                   </button>
                 </div>
               </div>
@@ -492,21 +630,48 @@ function CartModal() {
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-3">
                               <div className="flex-1 pr-2">
-                                <h3 className="font-semibold text-gray-900 text-sm mb-1">{item.nombre}</h3>
-                                {item.descripcion && (
-                                  <p className="text-xs text-gray-600 mb-1">{item.descripcion}</p>
-                                )}
-                                {item.fechaDespacho && (
-                                  <div className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-md mb-1 font-medium">
-                                    📅 Despacho: {(item.fechaDespacho instanceof Date ? item.fechaDespacho : new Date(item.fechaDespacho)).toLocaleDateString('es-CL', { 
-                                      weekday: 'long', 
-                                      day: 'numeric', 
-                                      month: 'long' 
-                                    })}
+                                {/* Nombre completo del producto */}
+                                <h3 className="font-semibold text-gray-900 text-sm mb-1">
+                                  {item.nombre}
+                                </h3>
+                                
+                                {/* Especificaciones filtradas y compactas */}
+                                {(() => {
+                                  const specs = [];
+                                  if (item.especificaciones) {
+                                    // Extraer solo espesor, ancho, largo y color
+                                    const espesor = item.especificaciones.find(s => s.includes('Espesor:'));
+                                    const ancho = item.especificaciones.find(s => s.includes('Ancho:'));
+                                    const largo = item.especificaciones.find(s => s.includes('Largo:'));
+                                    const color = item.especificaciones.find(s => s.includes('Color:') && !s.includes('Sin color'));
+                                    
+                                    if (espesor) specs.push(espesor.split(':')[1].trim());
+                                    if (ancho) specs.push(ancho.split(':')[1].trim());
+                                    if (largo) specs.push(largo.split(':')[1].trim());
+                                    if (color) specs.push(color.split(':')[1].trim());
+                                  }
+                                  
+                                  return specs.length > 0 ? (
+                                    <div className="text-xs text-gray-600 mb-2">
+                                      {specs.join(' • ')}
+                                    </div>
+                                  ) : null;
+                                })()}
+                                
+                                {/* Precio y fecha en la misma línea */}
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    ${(item.precioUnitario || 0).toLocaleString()}/ud
                                   </div>
-                                )}
-                                <div className="text-xs text-gray-500">
-                                  ${(item.precioUnitario || 0).toLocaleString()} por unidad
+                                  
+                                  {item.fechaDespacho && (
+                                    <div className="text-xs text-green-700">
+                                      Despacho: {(item.fechaDespacho instanceof Date ? item.fechaDespacho : new Date(item.fechaDespacho)).toLocaleDateString('es-CL', { 
+                                        day: 'numeric', 
+                                        month: 'short' 
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               
@@ -527,15 +692,25 @@ function CartModal() {
                               <div className="flex items-center bg-white rounded-lg border border-gray-300">
                                 <button
                                   onClick={() => {
-                                    const newQuantity = Math.max(10, item.cantidad - 10);
-                                    if (newQuantity < 10) {
+                                    const isCompacto = isPolicarbonatoCompacto(item);
+                                    console.log('🔍 Floating Cart Decrement - Item:', {
+                                      nombre: item.nombre,
+                                      categoria: item.categoria,
+                                      isCompacto,
+                                      id: item.id
+                                    });
+                                    const minQuantity = isCompacto ? 1 : 10;
+                                    const decrementBy = isCompacto ? 1 : 10;
+                                    console.log('🔢 Decrementing by:', decrementBy, 'Min quantity:', minQuantity);
+                                    const newQuantity = Math.max(minQuantity, item.cantidad - decrementBy);
+                                    if (newQuantity < minQuantity) {
                                       removeItem(item.id);
                                     } else {
                                       updateQuantity(item.id, newQuantity);
                                     }
                                   }}
                                   className="p-2 hover:bg-gray-100 rounded-l-lg transition-colors"
-                                  title="Quitar 10 unidades"
+                                  title={isPolicarbonatoCompacto(item) ? "Quitar 1 unidad" : "Quitar 10 unidades"}
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
@@ -548,9 +723,20 @@ function CartModal() {
                                 </div>
                                 
                                 <button
-                                  onClick={() => updateQuantity(item.id, item.cantidad + 10)}
+                                  onClick={() => {
+                                    const isCompacto = isPolicarbonatoCompacto(item);
+                                    console.log('🔍 Floating Cart Increment - Item:', {
+                                      nombre: item.nombre,
+                                      categoria: item.categoria,
+                                      isCompacto,
+                                      id: item.id
+                                    });
+                                    const incrementBy = isCompacto ? 1 : 10;
+                                    console.log('🔢 Incrementing by:', incrementBy);
+                                    updateQuantity(item.id, item.cantidad + incrementBy);
+                                  }}
                                   className="p-2 hover:bg-gray-100 rounded-r-lg transition-colors"
-                                  title="Agregar 10 unidades"
+                                  title={isPolicarbonatoCompacto(item) ? "Agregar 1 unidad" : "Agregar 10 unidades"}
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -641,11 +827,15 @@ function CartModal() {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        router.push('/productos');
                         handleClose();
                       }}
-                      className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-xl transition-colors"
+                      className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-xl transition-colors flex items-center justify-center space-x-2"
                     >
-                      Continuar Navegando
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                      <span>Ver Productos</span>
                     </button>
                   </div>
 

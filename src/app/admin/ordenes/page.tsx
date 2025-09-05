@@ -135,6 +135,40 @@ export default function OrdenesAdminPage() {
       title="Gestión de Órdenes" 
       subtitle="Administra todos los pedidos y coordinaciones de despacho"
     >
+      {/* Navegación */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <a href="/admin" className="hover:text-blue-600 transition-colors">Panel Admin</a>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span className="text-gray-900 font-medium">Gestión de Órdenes</span>
+          </div>
+          
+          <div className="flex space-x-3">
+            <a
+              href="/admin"
+              className="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Panel Principal
+            </a>
+            <a
+              href="/admin/control-supabase"
+              className="inline-flex items-center px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors text-sm"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+              </svg>
+              Control Supabase
+            </a>
+          </div>
+        </div>
+      </div>
+      
       {/* Navegación de tabs */}
       <div className="mb-6">
         <div className="border-b border-gray-200">

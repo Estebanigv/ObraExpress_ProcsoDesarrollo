@@ -51,7 +51,7 @@ export async function GET() {
         tableError = basicError.message;
       }
     } catch (e) {
-      tableError = e.message;
+      tableError = (e as Error).message;
     }
 
     return NextResponse.json({

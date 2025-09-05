@@ -263,7 +263,7 @@ function HomeContent() {
   const [toastMessage, setToastMessage] = useState('');
   
   // Estados para productos destacados desde Supabase
-  const [productosDestacados, setProductosDestacados] = useState([]);
+  const [productosDestacados, setProductosDestacados] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   // Cargar productos destacados desde Supabase
@@ -414,8 +414,8 @@ function HomeContent() {
   };
 
   // Función para abrir modal de proyecto
-  const openProjectModal = (projectId) => {
-    setSelectedProject(projectsData[projectId]);
+  const openProjectModal = (projectId: any) => {
+    setSelectedProject((projectsData as any)[projectId]);
     setIsProjectModalOpen(true);
   };
 
@@ -429,7 +429,7 @@ function HomeContent() {
   };
 
   // Función helper para aplicar mínimos según tipo de producto
-  const applyMinimumQuantity = (productId, calculatedQuantity) => {
+  const applyMinimumQuantity = (productId: any, calculatedQuantity: any) => {
     // Solo policarbonato compacto se vende sin mínimo
     if (productId.includes('compacto') || productId.includes('Compacto')) {
       return Math.ceil(calculatedQuantity);

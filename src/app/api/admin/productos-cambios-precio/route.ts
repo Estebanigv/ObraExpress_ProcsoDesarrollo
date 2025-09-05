@@ -66,8 +66,8 @@ export async function GET(request: NextRequest) {
     estadisticasValidacion?.forEach(p => {
       if (p.motivos_no_disponible_web && Array.isArray(p.motivos_no_disponible_web)) {
         p.motivos_no_disponible_web.forEach(motivo => {
-          stats.motivosNoDisponibilidad[motivo] = 
-            (stats.motivosNoDisponibilidad[motivo] || 0) + 1;
+          (stats.motivosNoDisponibilidad as any)[motivo] = 
+            ((stats.motivosNoDisponibilidad as any)[motivo] || 0) + 1;
         });
       }
     });

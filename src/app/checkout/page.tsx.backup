@@ -10,7 +10,6 @@ import Image from 'next/image';
 import { CartThumbnail } from '@/components/optimized-image';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import ProductConfiguratorSimple from '@/modules/products/components/product-configurator-simple';
-import LocationMap from '@/components/maps/LocationMap';
 
 interface CheckoutFormData {
   nombre: string;
@@ -51,7 +50,6 @@ function CheckoutPageContent() {
   // Estados para la UI
   const [isLoading, setIsLoading] = useState(false);
   const [showLocationEditor, setShowLocationEditor] = useState(false);
-  const [showMap, setShowMap] = useState(false);
   const [productos, setProductos] = useState<any[]>([]);
   const [selectedVariants, setSelectedVariants] = useState<any>({});
   const [complementaryProductQuantities, setComplementaryProductQuantities] = useState<{[key: string]: number}>({});
@@ -138,12 +136,26 @@ function CheckoutPageContent() {
   };
 
   // Opciones de regiones de Chile
-  // Solo despachamos a la Región Metropolitana
   const regionesChile = [
-    'Región Metropolitana'
+    'Región de Arica y Parinacota',
+    'Región de Tarapacá',
+    'Región de Antofagasta',
+    'Región de Atacama',
+    'Región de Coquimbo',
+    'Región de Valparaíso',
+    'Región Metropolitana',
+    'Región del Libertador General Bernardo O\'Higgins',
+    'Región del Maule',
+    'Región de Ñuble',
+    'Región del Biobío',
+    'Región de La Araucanía',
+    'Región de Los Ríos',
+    'Región de Los Lagos',
+    'Región Aysén del General Carlos Ibáñez del Campo',
+    'Región de Magallanes y de la Antártica Chilena'
   ];
 
-  // Comunas disponibles solo para la Región Metropolitana
+  // Comunas por región (muestra simplificada)
   const comunasPorRegion: { [key: string]: string[] } = {
     'Región Metropolitana': [
       'Santiago', 'Las Condes', 'Providencia', 'Ñuñoa', 'La Reina', 'Macul',
@@ -152,6 +164,14 @@ function CheckoutPageContent() {
       'Tiltil', 'Maipú', 'Pudahuel', 'Cerro Navia', 'Lo Prado', 'Quinta Normal',
       'Estación Central', 'Pedro Aguirre Cerda', 'San Miguel', 'La Cisterna',
       'El Bosque', 'San Bernardo', 'Calera de Tango', 'Buin', 'Paine'
+    ],
+    'Región de Valparaíso': [
+      'Valparaíso', 'Viña del Mar', 'Concón', 'Quintero', 'Puchuncaví',
+      'Casablanca', 'Juan Fernández', 'San Antonio', 'Cartagena', 'El Tabo',
+      'El Quisco', 'Algarrobo', 'Santo Domingo', 'Los Andes', 'Calle Larga',
+      'Rinconada', 'San Esteban', 'La Ligua', 'Cabildo', 'Papudo', 'Zapallar',
+      'Petorca', 'Chincolco', 'Hijuelas', 'La Calera', 'La Cruz', 'Limache',
+      'Nogales', 'Olmué', 'Quillota'
     ]
   };
 
@@ -170,10 +190,10 @@ function CheckoutPageContent() {
     }
   }, [location]);
 
-  // Efecto para cargar productos recomendados - comentado para pruebas
-  // useEffect(() => {
+  // Efecto para cargar productos recomendados
+  useEffect(() => {
     const loadProductos = async () => {
-      // setLoadingRecommendations(true);
+      setLoadingRecommendations(true);
       try {
         const response = await fetch('/api/productos-publico');
         if (response.ok) {
@@ -185,72 +205,11 @@ function CheckoutPageContent() {
             return;
           }
           
-          // Obtener categorías de productos ya en el carrito
-          const categoriasEnCarrito = state.items.map(item => {
-            // Normalizar nombres de categorías para comparación
-            if (item.nombre?.toLowerCase().includes('perfil u')) return 'Perfil U';
-            if (item.nombre?.toLowerCase().includes('perfil clip') || item.nombre?.toLowerCase().includes('clip plano')) return 'Perfil Clip Plano';
-            if (item.nombre?.toLowerCase().includes('policarbonato alveolar')) return 'Policarbonato Alveolar';
-            if (item.nombre?.toLowerCase().includes('policarbonato ondulado')) return 'Policarbonato Ondulado';
-            if (item.nombre?.toLowerCase().includes('policarbonato compacto')) return 'Policarbonato Compacto';
-            return item.categoria || '';
-          });
-          
-          console.log('🛒 Categorías en carrito:', categoriasEnCarrito);
-          
-          // Determinar qué productos recomendar basado en lo que ya está en el carrito
-          const categoriasARecomendar: string[] = [];
-          
-          const tieneAlveolar = categoriasEnCarrito.includes('Policarbonato Alveolar');
-          const tieneOndulado = categoriasEnCarrito.includes('Policarbonato Ondulado');
-          const tieneCompacto = categoriasEnCarrito.includes('Policarbonato Compacto');
-          const tienePerfilU = categoriasEnCarrito.includes('Perfil U');
-          const tienePerfilClip = categoriasEnCarrito.includes('Perfil Clip Plano');
-          
-          // Lógica de recomendaciones inteligentes - SOLO recomendar lo que NO está en el carrito:
-          
-          // Si tiene policarbonato alveolar → recomendar perfiles (si no los tiene)
-          if (tieneAlveolar) {
-            if (!tienePerfilU) categoriasARecomendar.push('Perfil U');
-            if (!tienePerfilClip) categoriasARecomendar.push('Perfil Clip Plano');
-          }
-          
-          // Si tiene policarbonato ondulado → recomendar otros tipos (si no los tiene)
-          if (tieneOndulado) {
-            if (!tieneAlveolar) categoriasARecomendar.push('Policarbonato Alveolar');
-            if (!tieneCompacto) categoriasARecomendar.push('Policarbonato Compacto');
-            if (!tienePerfilU) categoriasARecomendar.push('Perfil U');
-            if (!tienePerfilClip) categoriasARecomendar.push('Perfil Clip Plano');
-          }
-          
-          // Si tiene policarbonato compacto → recomendar perfiles y otros policarbonatos
-          if (tieneCompacto) {
-            if (!tieneAlveolar) categoriasARecomendar.push('Policarbonato Alveolar');
-            if (!tieneOndulado) categoriasARecomendar.push('Policarbonato Ondulado');
-            if (!tienePerfilU) categoriasARecomendar.push('Perfil U');
-            if (!tienePerfilClip) categoriasARecomendar.push('Perfil Clip Plano');
-          }
-          
-          // Si solo tiene perfiles → recomendar policarbonatos
-          if ((tienePerfilU || tienePerfilClip) && !tieneAlveolar && !tieneOndulado && !tieneCompacto) {
-            categoriasARecomendar.push('Policarbonato Alveolar', 'Policarbonato Ondulado', 'Policarbonato Compacto');
-          }
-          
-          // Si el carrito está vacío → mostrar productos destacados por defecto
-          if (state.items.length === 0) {
-            categoriasARecomendar.push('Perfil U', 'Perfil Clip Plano', 'Policarbonato Compacto');
-          }
-          
-          // Eliminar duplicados
-          const categoriasUnicas = [...new Set(categoriasARecomendar)];
-          
-          console.log('💡 Categorías a recomendar:', categoriasUnicas);
-          
-          // Extraer productos recomendados
+          // Extraer solo 2 grupos específicos: Perfil U y Perfil Clip Plano
           const gruposProductos: any[] = [];
           Object.entries(result.data.productos_por_categoria || {}).forEach(([categoriaKey, categoria]: [string, any]) => {
-            // Solo incluir categorías que queremos recomendar
-            if (categoriasUnicas.includes(categoriaKey)) {
+            // Solo incluir Perfil U y Perfil Clip Plano
+            if (categoriaKey === 'Perfil U' || categoriaKey === 'Perfil Clip Plano') {
               categoria.forEach((grupo: any) => {
                 if (grupo.variantes && grupo.variantes.length > 0) {
                   // Filtrar variantes disponibles
@@ -272,7 +231,7 @@ function CheckoutPageContent() {
                       })),
                       precio_desde: Math.min(...variantesDisponibles.map((v: any) => v.precio_con_iva || v.precio || 0)),
                       total_variantes: variantesDisponibles.length,
-                      tag: categoriaKey.includes('Perfil') ? 'Recomendado' : 'Complementario'
+                      tag: categoriaKey === 'Perfil U' ? 'Recomendado' : 'Destacado'
                     });
                   }
                 }
@@ -280,7 +239,7 @@ function CheckoutPageContent() {
             }
           });
           
-          console.log('🔍 Grupos de productos complementarios filtrados:', gruposProductos);
+          console.log('🔍 Grupos de productos complementarios:', gruposProductos);
           
           // Usar los grupos como productos destacados
           const productosDestacados = gruposProductos;
@@ -297,57 +256,12 @@ function CheckoutPageContent() {
       } catch (error) {
         console.error('❌ Error cargando productos:', error);
       } finally {
-        // setLoadingRecommendations(false);
+        setLoadingRecommendations(false);
       }
     };
 
-    // loadProductos();
-  // }, [state.items]); // Re-ejecutar cuando cambien los items del carrito
-
-  // Función para detectar si es Policarbonato Compacto (único con mínimo de 1 unidad)
-  const isPolicarbonatoCompacto = (item: any) => {
-    const nombreLower = (item.nombre || '').toLowerCase();
-    const categoriaLower = (item.categoria || '').toLowerCase();
-    
-    return (nombreLower.includes('policarbonato') && nombreLower.includes('compacto')) ||
-           (categoriaLower.includes('policarbonato') && categoriaLower.includes('compacto'));
-  };
-
-  // Función para generar nombre descriptivo del producto
-  const getProductDisplayName = (item: any) => {
-    // Primero, intentar detectar el tipo de producto por el nombre o categoría
-    const nombreLower = (item.nombre || '').toLowerCase();
-    const categoriaLower = (item.categoria || '').toLowerCase();
-    
-    // Para policarbonatos - priorizar detección por contenido del nombre
-    if (nombreLower.includes('policarbonato') || categoriaLower.includes('policarbonato')) {
-      if (nombreLower.includes('alveolar') || categoriaLower.includes('alveolar')) {
-        return 'Policarbonato Alveolar';
-      }
-      if (nombreLower.includes('ondulado') || categoriaLower.includes('ondulado')) {
-        return 'Policarbonato Ondulado';
-      }
-      if (nombreLower.includes('compacto') || categoriaLower.includes('compacto')) {
-        return 'Policarbonato Compacto';
-      }
-      // Si solo dice "policarbonato" pero no especifica el tipo, usar el nombre original
-      return item.nombre || item.categoria || 'Policarbonato';
-    }
-    
-    // Para perfiles
-    if (nombreLower.includes('perfil') || categoriaLower.includes('perfil')) {
-      if (nombreLower.includes('perfil u') || nombreLower.includes('u ')) {
-        return 'Perfil U';
-      }
-      if (nombreLower.includes('clip') || nombreLower.includes('clip plano')) {
-        return 'Perfil Clip Plano';
-      }
-      return item.nombre || item.categoria || 'Perfil';
-    }
-    
-    // Para otros productos, usar el nombre original o la categoría
-    return item.nombre || item.categoria || 'Producto';
-  };
+    loadProductos();
+  }, []);
 
   // Función para obtener dirección usando coordenadas
   const reverseGeocode = async (lat: number, lng: number) => {
@@ -390,16 +304,15 @@ function CheckoutPageContent() {
 
   // Efecto para inicializar fecha de despacho
   useEffect(() => {
-    // Comentado temporalmente para pruebas
-    // if (state.items.length === 0) {
-    //   router.push('/');
-    //   return;
-    // }
+    if (state.items.length === 0) {
+      router.push('/');
+      return;
+    }
     
     // Función para inicializar fechas
     const initializeDispatchDate = async () => {
-      // Cargar fechas bloqueadas - comentado para pruebas
-      // await fetchBlockedDates();
+      // Cargar fechas bloqueadas
+      await fetchBlockedDates();
       
       // Verificar si hay fecha seleccionada en localStorage (desde página principal)
       const savedDispatchDate = localStorage.getItem('selectedDispatchDate');
@@ -418,34 +331,21 @@ function CheckoutPageContent() {
       localStorage.setItem('selectedDispatchDate', nextThursdayStr);
     };
     
-    // Comentado temporalmente para pruebas
-    // initializeDispatchDate();
+    initializeDispatchDate();
   }, [state.items.length, router]);
 
   // Función para manejar la geolocalización
   const handleGeolocalizacion = async () => {
     try {
       await requestLocation();
-      setShowMap(true); // Mostrar mapa automáticamente después de obtener ubicación
     } catch (error) {
       console.error('Error al obtener geolocalización:', error);
     }
   };
 
-  // Función para manejar selección de ubicación en el mapa
-  const handleMapLocationSelect = (lat: number, lng: number, address: string) => {
-    setFormData(prev => ({
-      ...prev,
-      coordenadas: { lat, lng },
-      direccion: address.split(',')[0] // Solo la primera parte de la dirección
-    }));
-    console.log('📍 Ubicación seleccionada desde mapa:', { lat, lng, address });
-  };
-
   // Función para limpiar ubicación
   const handleClearLocation = () => {
     clearLocation();
-    setShowMap(false); // Ocultar mapa al limpiar ubicación
     setFormData(prev => ({
       ...prev,
       region: 'Región Metropolitana',
@@ -740,7 +640,7 @@ function CheckoutPageContent() {
                 <div className="border-t border-gray-200 pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-medium text-gray-900">Ubicación de Entrega</h3>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex space-x-2">
                       <button
                         type="button"
                         onClick={handleGeolocalizacion}
@@ -752,18 +652,6 @@ function CheckoutPageContent() {
                         </svg>
                         Ubicar automáticamente
                       </button>
-                      
-                      <button
-                        type="button"
-                        onClick={() => setShowMap(!showMap)}
-                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                        </svg>
-                        {showMap ? 'Ocultar mapa' : 'Ver mapa'}
-                      </button>
-                      
                       {location && (
                         <button
                           type="button"
@@ -792,24 +680,6 @@ function CheckoutPageContent() {
                       </div>
                     </div>
                   )}
-
-                  {/* Aviso de cobertura de despacho */}
-                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-start">
-                      <div className="flex-shrink-0">
-                        <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-sm font-medium text-blue-800">Cobertura de Despacho</h3>
-                        <p className="text-sm text-blue-700 mt-1">
-                          Actualmente solo realizamos despachos dentro de la <strong>Región Metropolitana</strong>. 
-                          Pronto expandiremos nuestro servicio a otras regiones.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -888,29 +758,6 @@ function CheckoutPageContent() {
                     placeholder="Instrucciones especiales para la entrega, referencias adicionales..."
                   />
                 </div>
-                
-                {/* Mapa de ubicación */}
-                {showMap && (
-                  <div className="space-y-3">
-                    <div className="border-t border-gray-200 pt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        📍 Selecciona tu ubicación en el mapa
-                      </label>
-                      <LocationMap
-                        latitude={formData.coordenadas?.lat || location?.lat}
-                        longitude={formData.coordenadas?.lng || location?.lng}
-                        address={formData.direccion}
-                        searchAddress={formData.direccion}
-                        onLocationSelect={handleMapLocationSelect}
-                        height="350px"
-                        className="w-full"
-                      />
-                      <p className="text-xs text-gray-500 mt-2">
-                        💡 Puedes arrastrar el marcador o hacer clic en el mapa para ajustar tu ubicación exacta
-                      </p>
-                    </div>
-                  </div>
-                )}
               </form>
             </div>
 
@@ -925,7 +772,7 @@ function CheckoutPageContent() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">¿Necesitas completar tu instalación?</h3>
-                    <p className="text-sm text-gray-600">Productos complementarios que podrías necesitar</p>
+                    <p className="text-sm text-gray-600">Productos recomendados para policarbonato alveolar</p>
                   </div>
                 </div>
                 
@@ -1391,15 +1238,8 @@ function CheckoutPageContent() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900 text-sm truncate">
-                        {getProductDisplayName(item)}
-                      </h4>
-                      <div className="flex items-center justify-between mt-1">
-                        <p className="text-xs text-gray-600">Cantidad: {item.cantidad}</p>
-                        <div className="text-xs text-gray-500">
-                          Min: {isPolicarbonatoCompacto(item) ? '1' : '10'} unid.
-                        </div>
-                      </div>
+                      <h4 className="font-medium text-gray-900 text-sm truncate">{item.nombre}</h4>
+                      <p className="text-xs text-gray-600">Cantidad: {item.cantidad}</p>
                       <p className="text-xs text-gray-500">Precio unit.: ${item.precioUnitario?.toLocaleString('es-CL') || (item.total / item.cantidad).toLocaleString('es-CL')}</p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -1407,46 +1247,6 @@ function CheckoutPageContent() {
                         <p className="font-semibold text-black">${item.total.toLocaleString('es-CL')}</p>
                         <p className="text-xs text-gray-500">IVA incluido</p>
                       </div>
-                      
-                      {/* Controles de cantidad */}
-                      <div className="flex items-center space-x-1">
-                        <button
-                          onClick={() => {
-                            const minQuantity = isPolicarbonatoCompacto(item) ? 1 : 10;
-                            const newQuantity = Math.max(minQuantity, item.cantidad - (minQuantity === 1 ? 1 : 10));
-                            if (newQuantity === 0) {
-                              removeItem(item.id);
-                            } else {
-                              updateQuantity(item.id, newQuantity);
-                            }
-                          }}
-                          className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-colors"
-                          title="Disminuir cantidad"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                          </svg>
-                        </button>
-                        
-                        <span className="text-xs font-medium text-gray-700 min-w-[2rem] text-center">
-                          {item.cantidad}
-                        </span>
-                        
-                        <button
-                          onClick={() => {
-                            const minQuantity = isPolicarbonatoCompacto(item) ? 1 : 10;
-                            const incrementBy = minQuantity === 1 ? 1 : 10;
-                            updateQuantity(item.id, item.cantidad + incrementBy);
-                          }}
-                          className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-colors"
-                          title="Aumentar cantidad"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
-                      </div>
-                      
                       <button
                         onClick={() => removeItem(item.id)}
                         className="text-red-500 hover:text-red-700 transition-colors p-1"
@@ -1478,13 +1278,14 @@ function CheckoutPageContent() {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 text-sm">{getProductDisplayName(item)}</h4>
-                        <div className="flex items-center justify-between mt-2">
-                          <p className="text-xs text-gray-600">Cantidad: {item.cantidad} unidades</p>
-                          <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                            Mín: {isPolicarbonatoCompacto(item) ? '1' : '10'} unid.
-                          </div>
-                        </div>
+                        <h4 className="font-medium text-gray-900 text-sm">{item.nombre}</h4>
+                        {item.especificaciones && item.especificaciones.length > 0 && (
+                          <ul className="text-xs text-gray-600 mt-1">
+                            {item.especificaciones.map((spec, idx) => (
+                              <li key={idx}>• {spec}</li>
+                            ))}
+                          </ul>
+                        )}
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center space-x-2">
                             <button
@@ -1631,6 +1432,8 @@ function CheckoutPageContent() {
                           days.push(day);
                         }
                         
+                        const monthName = firstDay.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
+                        
                         return (
                           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                             {/* Header navegación compacto */}
@@ -1686,64 +1489,66 @@ function CheckoutPageContent() {
                             
                             {/* Calendario */}
                             <div className="grid grid-cols-7 gap-1 p-3 pt-0">
-                              {days.map((day, dayIndex) => {
-                                if (day === null) {
-                                  return <div key={dayIndex} className="h-8 w-8"></div>;
-                                }
+                                {days.map((day, dayIndex) => {
+                                  if (day === 0) {
+                                    return <div key={dayIndex} className="aspect-square"></div>;
+                                  }
+                                  
+                                  const date = new Date(calendarYear, calendarMonth, day);
+                                  const dateStr = date.toISOString().split('T')[0];
+                                  const isThursdayDay = isThursday(date);
+                                  const isAvailable = isDateAvailable(date);
+                                  const isSelected = orderDispatchDate === dateStr;
+                                  const isPast = date < today;
+                                  const isToday = date.toDateString() === today.toDateString();
+                                  const isBlocked = blockedDates.includes(dateStr);
+                                  
+                                  let buttonClass = 'h-8 w-8 rounded text-xs font-medium transition-all duration-200 flex items-center justify-center relative ';
+                                  
+                                  if (isSelected) {
+                                    buttonClass += 'bg-blue-600 text-white font-bold ring-2 ring-blue-300 shadow-lg cursor-pointer';
+                                  } else if (isAvailable && isThursdayDay) {
+                                    buttonClass += 'border border-blue-500 text-blue-600 hover:border-blue-600 cursor-pointer font-bold hover:bg-blue-50 bg-white';
+                                  } else if (isToday) {
+                                    buttonClass += 'border-2 border-gray-500 text-gray-600 font-bold bg-white';
+                                  } else if (isPast) {
+                                    buttonClass += 'text-gray-400 cursor-default';
+                                  } else {
+                                    buttonClass += 'text-gray-500 cursor-default';
+                                  }
                                 
-                                const date = new Date(calendarYear, calendarMonth, day);
-                                const dateStr = date.toISOString().split('T')[0];
-                                const isThursdayDay = isThursday(date);
-                                const isAvailable = isDateAvailable(date);
-                                const isSelected = orderDispatchDate === dateStr;
-                                const isPast = date < today;
-                                const isToday = date.toDateString() === today.toDateString();
-                                const isBlocked = blockedDates.includes(dateStr);
-                                
-                                let buttonClass = 'h-8 w-8 rounded text-xs font-medium transition-all duration-200 flex items-center justify-center relative ';
-                                
-                                if (isSelected) {
-                                  buttonClass += 'bg-blue-600 text-white font-bold ring-2 ring-blue-300 shadow-lg cursor-pointer';
-                                } else if (isAvailable && isThursdayDay) {
-                                  buttonClass += 'border border-blue-500 text-blue-600 hover:border-blue-600 cursor-pointer font-bold hover:bg-blue-50 bg-white';
-                                } else if (isToday) {
-                                  buttonClass += 'border-2 border-gray-500 text-gray-600 font-bold bg-white';
-                                } else if (isPast) {
-                                  buttonClass += 'text-gray-400 cursor-default';
-                                } else {
-                                  buttonClass += 'text-gray-500 cursor-default';
-                                }
-                              
                                 return (
-                                  <button
-                                    key={dayIndex}
-                                    onClick={() => {
-                                      if (isAvailable && isThursdayDay) {
-                                        setOrderDispatchDate(dateStr);
-                                        setShowOrderCalendar(false);
-                                        localStorage.setItem('selectedDispatchDate', dateStr);
+                                  <div key={dayIndex}>
+                                    <button
+                                      onClick={() => {
+                                        if (isAvailable && isThursdayDay) {
+                                          setOrderDispatchDate(dateStr);
+                                          setShowOrderCalendar(false);
+                                          localStorage.setItem('selectedDispatchDate', dateStr);
+                                        }
+                                      }}
+                                      disabled={!isAvailable || !isThursdayDay}
+                                      className={buttonClass}
+                                      title={
+                                        isBlocked ? 'Fecha bloqueada por administrador' :
+                                        !isThursdayDay ? 'Solo despachamos los jueves' :
+                                        isPast ? 'Fecha pasada' :
+                                        isAvailable ? 'Fecha disponible para despacho' :
+                                        'Fecha no disponible'
                                       }
-                                    }}
-                                    disabled={!isAvailable || !isThursdayDay}
-                                    className={buttonClass}
-                                    title={
-                                      isBlocked ? 'Fecha bloqueada por administrador' :
-                                      !isThursdayDay ? 'Solo despachamos los jueves' :
-                                      isPast ? 'Fecha pasada' :
-                                      isAvailable ? 'Fecha disponible para despacho' :
-                                      'Fecha no disponible'
-                                    }
-                                  >
-                                    {day}
-                                    {isThursdayDay && !isSelected && isAvailable && (
-                                      <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full"></div>
-                                    )}
-                                    {isSelected && (
-                                      <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border border-white"></div>
-                                    )}
-                                  </button>
+                                    >
+                                      {day}
+                                      {isThursdayDay && !isSelected && isAvailable && (
+                                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full"></div>
+                                      )}
+                                      {isSelected && (
+                                        <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border border-white"></div>
+                                      )}
+                                    </button>
+                                  </div>
                                 );
-                              })}
+                                })}
+                              </div>
                             </div>
                           </div>
                         );
@@ -1797,7 +1602,7 @@ function CheckoutPageContent() {
                           }
                         </p>
                         <p className="text-xs text-green-600 mt-1">
-                          Entregaremos tu pedido entre las 9:00 AM y 6:00 PM
+                          🚛 Entregaremos tu pedido entre las 9:00 AM y 6:00 PM
                         </p>
                         <button
                           onClick={() => setShowOrderCalendar(true)}
@@ -1824,7 +1629,7 @@ function CheckoutPageContent() {
                   </span>
                 </div>
                 {envio === 0 && subtotal > 100000 && (
-                  <p className="text-xs text-green-600">¡Envío gratis por compras sobre $100.000!</p>
+                  <p className="text-xs text-green-600">✅ ¡Envío gratis por compras sobre $100.000!</p>
                 )}
                 <div className="border-t border-gray-200 pt-2">
                   <div className="flex justify-between text-lg font-bold">
@@ -1864,7 +1669,7 @@ function CheckoutPageContent() {
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-gray-600 font-medium mb-1">
-                      Pago 100% seguro con Webpay Plus
+                      🔒 Pago 100% seguro con Webpay Plus
                     </p>
                     <p className="text-xs text-gray-500">
                       Serás redirigido a la plataforma de Transbank para completar tu pago de forma segura.

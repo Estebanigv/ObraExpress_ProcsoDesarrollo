@@ -93,7 +93,7 @@ function FloatingChatSimple() {
     try {
       const savedMessages = localStorage.getItem(`obraexpress_chat_messages_${sessionId}`);
       if (savedMessages) {
-        const messages = JSON.parse(savedMessages).map(msg => ({
+        const messages = JSON.parse(savedMessages).map((msg: any) => ({
           ...msg,
           timestamp: new Date(msg.timestamp) // Asegurar que timestamp sea Date
         }));
@@ -192,7 +192,7 @@ function FloatingChatSimple() {
           },
           body: JSON.stringify({
             message: currentMessage,
-            user_name: chatState.userName || user?.name || 'Invitado',
+            user_name: chatState.userName || user?.nombre || 'Invitado',
             session_id: chatState.sessionId,
             timestamp: new Date().toISOString(),
             is_first_message: isFirstMessage && chatState.messages.length === 0
@@ -217,7 +217,7 @@ function FloatingChatSimple() {
         };
         
       } catch (error) {
-        console.warn('⚠️ Webhook falló, usando API local:', error.message);
+        console.warn('⚠️ Webhook falló, usando API local:', (error as Error).message);
         
         // Fallback a nuestra API local
         try {
@@ -231,9 +231,9 @@ function FloatingChatSimple() {
             body: JSON.stringify({
               sessionId: chatState.sessionId,
               message: currentMessage,
-              userName: chatState.userName || user?.name || '',
+              userName: chatState.userName || user?.nombre || '',
               userEmail: user?.email || '',
-              userPhone: user?.phone || '',
+              userPhone: user?.telefono || '',
               isFirstMessage: isFirstMessage && chatState.messages.length === 0
             })
           });
@@ -257,12 +257,12 @@ function FloatingChatSimple() {
           }
           
         } catch (apiError) {
-          console.error('❌ API local también falló:', apiError.message);
+          console.error('❌ API local también falló:', (apiError as Error).message);
           
           // Último fallback: respuestas inteligentes offline
           return {
             success: false,
-            response: generateOfflineFallback(currentMessage, chatState.userName || user?.name),
+            response: generateOfflineFallback(currentMessage, chatState.userName || user?.nombre),
             source: 'offline',
             intentions: null
           };
@@ -376,7 +376,7 @@ function FloatingChatSimple() {
         console.log('🧹 Limpiadas sesiones antiguas');
       }
     } catch (error) {
-      console.warn('Error limpiando sesiones:', error.message);
+      console.warn('Error limpiando sesiones:', (error as Error).message);
     }
   };
 

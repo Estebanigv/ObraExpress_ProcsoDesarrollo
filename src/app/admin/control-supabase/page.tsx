@@ -92,6 +92,38 @@ export default function ControlSupabasePage() {
     <AdminLayout title="Control Supabase">
       <div className="max-w-6xl mx-auto p-6 space-y-6">
         
+        {/* Navegación */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <a href="/admin" className="hover:text-blue-600 transition-colors">Panel Admin</a>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span className="text-gray-900 font-medium">Control Supabase</span>
+          </div>
+          
+          <div className="flex space-x-3">
+            <a
+              href="/admin"
+              className="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Panel Principal
+            </a>
+            <a
+              href="/admin/ordenes"
+              className="inline-flex items-center px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors text-sm"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4l1-12z" />
+              </svg>
+              Órdenes
+            </a>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-xl">
           <h1 className="text-3xl font-bold mb-2">Panel de Control Supabase</h1>

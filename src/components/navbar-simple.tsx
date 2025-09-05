@@ -62,6 +62,7 @@ function Navbar({ className }: { className?: string }) {
     if (pathname === '/') return 'Home';
     if (pathname === '/nosotros') return 'Nosotros';
     if (pathname.startsWith('/productos')) return 'Productos';
+    if (pathname === '/mis-ordenes') return 'Mis Órdenes';
     if (pathname === '/contacto') return 'Contacto';
     return null;
   };
@@ -169,17 +170,29 @@ function Navbar({ className }: { className?: string }) {
   };
 
   const handleMouseLeaveMenu = () => {
-    // NO hacer nada - El menú se mantiene abierto
-    // Solo se cierra por acción explícita del usuario
+    // Agregar un pequeño delay antes de cerrar para evitar cierres accidentales
+    const timeout = setTimeout(() => {
+      setActiveDropdown(null);
+      setSubMenuActive(null);
+    }, 200); // 200ms de delay
+    setCloseTimeout(timeout);
   };
 
   const handleMouseEnterSubMenu = (submenu: string) => {
-    // Solo establecer el submenu activo, sin timeouts
+    // Cancelar cualquier timeout de cierre si existe
+    if (closeTimeout) {
+      clearTimeout(closeTimeout);
+      setCloseTimeout(null);
+    }
     setSubMenuActive(submenu);
   };
 
   const handleMouseLeaveSubMenu = () => {
-    // NO hacer nada - Mantener siempre abierto
+    // Cerrar el submenú con un pequeño delay
+    const timeout = setTimeout(() => {
+      setSubMenuActive(null);
+    }, 150); // 150ms de delay para el submenú
+    setSubMenuTimeout(timeout);
   };
 
   const handleMenuItemHover = (item: string) => {
@@ -378,6 +391,20 @@ function Navbar({ className }: { className?: string }) {
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+              </svg>
+            </Link>
+
+            {/* Mis Órdenes */}
+            <Link
+              href="/mis-ordenes"
+              className={cn(
+                "p-3 rounded-xl transition-all duration-300 hover:bg-amber-50 hover:scale-110 group",
+                pathname === '/mis-ordenes' ? 'bg-amber-50 text-amber-600' : 'text-gray-600 hover:text-amber-600'
+              )}
+              title="Mis Órdenes"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
               </svg>
             </Link>
 
@@ -811,9 +838,7 @@ function Navbar({ className }: { className?: string }) {
                       <div 
                         className="relative px-3 py-2 hover:bg-amber-50 rounded transition-colors cursor-pointer flex items-center justify-between"
                         onMouseEnter={() => handleMouseEnterSubMenu("Policarbonatos")}
-                        onMouseLeave={() => {
-                          // No hacer nada - menú permanece estático
-                        }}
+                        onMouseLeave={handleMouseLeaveSubMenu}
                       >
                         <span className="text-sm text-gray-800 font-medium hover:text-amber-600">Policarbonatos</span>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -828,9 +853,7 @@ function Navbar({ className }: { className?: string }) {
                       <div 
                         className="relative px-3 py-2 hover:bg-amber-50 rounded transition-colors cursor-pointer flex items-center justify-between"
                         onMouseEnter={() => handleMouseEnterSubMenu("Perfiles")}
-                        onMouseLeave={() => {
-                          // No hacer nada - menú permanece estático
-                        }}
+                        onMouseLeave={handleMouseLeaveSubMenu}
                       >
                         <span className="text-sm text-gray-800 font-medium hover:text-amber-600">Perfiles Alveolares</span>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -849,10 +872,7 @@ function Navbar({ className }: { className?: string }) {
                             <div 
                               className="absolute left-full top-[-10px] ml-2 w-72 bg-white rounded-lg shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] border-2 border-gray-400 p-4 z-[99999]"
                               onMouseEnter={() => handleMouseEnterSubMenu("Policarbonatos")}
-                              onMouseLeave={() => {
-                                // Solo cerrar si realmente sales del área completa del menú
-                                // No cerrar automáticamente para mejor UX
-                              }}
+                              onMouseLeave={handleMouseLeaveSubMenu}
                             >
                               <div className="text-sm font-semibold text-gray-800 mb-3 border-b border-yellow-200 pb-2 flex justify-between items-center">
                                 <span>Policarbonatos</span>
@@ -886,10 +906,7 @@ function Navbar({ className }: { className?: string }) {
                             <div 
                               className="absolute left-full top-[-10px] ml-2 w-72 bg-white rounded-lg shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] border-2 border-gray-400 p-4 z-[99999]"
                               onMouseEnter={() => handleMouseEnterSubMenu("Perfiles")}
-                              onMouseLeave={() => {
-                                // Solo cerrar si realmente sales del área completa del menú
-                                // No cerrar automáticamente para mejor UX
-                              }}
+                              onMouseLeave={handleMouseLeaveSubMenu}
                             >
                               <div className="text-sm font-semibold text-gray-800 mb-3 border-b border-yellow-200 pb-2 flex justify-between items-center">
                                 <span>Perfiles Alveolares</span>
@@ -1052,6 +1069,17 @@ function Navbar({ className }: { className?: string }) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
                     Productos
+                  </HoveredLink>
+
+                  <HoveredLink 
+                    href="/mis-ordenes" 
+                    className="flex items-center text-gray-800 font-medium hover:text-amber-600 hover:bg-amber-50 transition-all duration-300 py-3 px-4 rounded-lg touch-target"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <svg className="w-5 h-5 mr-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
+                    </svg>
+                    Mis Órdenes
                   </HoveredLink>
                   
                   {/* Categorías con mejor organización */}

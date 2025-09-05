@@ -258,23 +258,62 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
 
   const handleAddToCart = () => {
     if (selectedVariant && selectedVariant.codigo) {
+      // Usar el nombre del grupo de producto que es el más específico
+      let nombreCompleto = productGroup.nombre || selectedVariant.nombre;
+      
+      // Solo corregir si el nombre es genérico "Policarbonato" sin tipo específico
+      if (nombreCompleto === 'Policarbonato' || nombreCompleto === 'policarbonato') {
+        // Detectar tipo específico basado en código o nombre de variante
+        if (selectedVariant.codigo?.startsWith('517') || selectedVariant.nombre?.includes('Compacto')) {
+          nombreCompleto = 'Policarbonato Compacto';
+        } else if (selectedVariant.nombre?.includes('Alveolar') || productGroup.categoria?.includes('Alveolar')) {
+          nombreCompleto = 'Policarbonato Alveolar';
+        } else if (selectedVariant.nombre?.includes('Ondulado') || productGroup.categoria?.includes('Ondulado')) {
+          nombreCompleto = 'Policarbonato Ondulado';
+        }
+      }
+      
+      // Obtener imagen con prioridad: variante específica > grupo > fallback
+      let imagenParaCarrito = selectedVariant.imagen || productGroup.imagen;
+      
+      // Si no hay imagen válida, usar fallback según el tipo de producto
+      if (!imagenParaCarrito || imagenParaCarrito.trim() === '' || imagenParaCarrito === 'undefined') {
+        console.log('🔧 Configurador - Fallback activado para:', nombreCompleto, 'Categoría:', productGroup.categoria);
+        if (productGroup.categoria === 'Perfil U') {
+          imagenParaCarrito = '/assets/images/Productos/Perfiles/Perfil_U.webp';
+        } else if (productGroup.categoria === 'Perfil Clip Plano') {
+          imagenParaCarrito = '/assets/images/Productos/Perfiles/Perfil_Clip.webp';
+        } else if (productGroup.categoria?.includes('Perfil') || nombreCompleto.includes('Perfil')) {
+          imagenParaCarrito = '/assets/images/Productos/Perfiles/Perfil_U.webp';
+        } else if (nombreCompleto.includes('Ondulado')) {
+          imagenParaCarrito = '/assets/images/Productos/Policarnato Ondulado/Policarbonato ondulado detalle.webp';
+        } else if (nombreCompleto.includes('Alveolar')) {
+          imagenParaCarrito = '/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar.webp';
+        } else if (nombreCompleto.includes('Compacto')) {
+          imagenParaCarrito = '/assets/images/Productos/Policarbonato Compacto/policarbonato_compacto.webp';
+        } else {
+          imagenParaCarrito = '/assets/images/Productos/Policarbonato Alveolar/policarbonato_alveolar.webp';
+        }
+        console.log('🔧 Configurador - Imagen asignada:', imagenParaCarrito);
+      }
+
       const item = {
         id: selectedVariant.codigo,
         tipo: 'producto' as const,
-        nombre: selectedVariant.nombre,
+        nombre: nombreCompleto,
         descripcion: selectedVariant.descripcion,
+        categoria: productGroup.categoria, // Agregar categoría del producto
         cantidad: quantity,
         precioUnitario: finalPrice, // Usar precio calculado por área
         total: finalPrice * quantity,
-        imagen: productGroup.imagen,
+        imagen: imagenParaCarrito,
         fechaDespacho: selectedDispatchDate ? createDateFromISOString(selectedDispatchDate) : undefined,
         especificaciones: [
           `Código: ${selectedVariant.codigo}`,
           `Espesor: ${selectedVariant.espesor}`,
           ...(selectedAncho ? [`Ancho: ${formatSingleDimension(selectedAncho, 'ancho')}`] : []),
           ...(selectedLargo ? [`Largo: ${formatSingleDimension(selectedLargo, 'largo')}`] : []),
-          ...(dimensionInfo.area > 0 ? [`Área: ${dimensionInfo.area.toFixed(2)} m²`] : []),
-          `Color: ${selectedVariant.color}`,
+          ...(selectedVariant.color && selectedVariant.color !== 'Sin color' ? [`Color: ${selectedVariant.color}`] : []),
           `Protección UV: ${selectedVariant.uv_protection ? 'Sí' : 'No'}`,
           ...(selectedDispatchDate ? [`Fecha de despacho: ${createDateFromISOString(selectedDispatchDate).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}`] : [])
         ]
@@ -304,7 +343,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
       .map(v => v.dimensiones)
       .filter(Boolean);
     
-    return [...new Set(availableDimensions)] || [];
+    return [...new Set(availableDimensions)];
   };
 
   // Filtrado dinámico: obtener dimensiones disponibles para el color seleccionado
@@ -316,7 +355,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
       .map(v => v.dimensiones)
       .filter(Boolean);
     
-    return [...new Set(availableDimensions)] || [];
+    return [...new Set(availableDimensions)];
   };
 
   // Obtener dimensiones filtradas por espesor Y color seleccionados
@@ -337,7 +376,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
       .map(v => v.dimensiones)
       .filter(Boolean);
     
-    return [...new Set(availableDimensions)] || [];
+    return [...new Set(availableDimensions)];
   };
 
   // Función para encontrar variante compatible (actualizada para ancho y largo)
@@ -404,7 +443,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
         >
           {/* Función para obtener la imagen correcta - Separación Policarbonato vs Perfiles */}
           {(() => {
-            let imagenFinal = selectedVariant.imagen || productGroup.imagen;
+            let imagenFinal: string | null = selectedVariant.imagen || productGroup.imagen;
             
             // Si hay imagen, verificar si es una ruta problemática conocida
             if (imagenFinal && (
@@ -457,7 +496,10 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
                 onError={(e) => {
                   // Si la imagen falla, mostrar placeholder
                   e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                  const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (nextElement) {
+                    nextElement.style.display = 'flex';
+                  }
                 }}
               />
             ) : null;
@@ -538,24 +580,7 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
               <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">IVA incluido</span>
             </div>
             
-            {/* Información de área y cálculo si es relevante */}
-            {dimensionInfo.area > 0 && (
-              <div className="text-xs text-gray-500 mb-2">
-                <div className="flex items-center justify-between">
-                  <span>Área: {dimensionInfo.area.toFixed(2)} m²</span>
-                  {dimensionInfo.pricePerSqMeter > 0 && (
-                    <span>${formatCurrency(dimensionInfo.pricePerSqMeter)}/m²</span>
-                  )}
-                </div>
-              </div>
-            )}
             
-            {/* Mostrar advertencia si las dimensiones no son válidas */}
-            {!dimensionInfo.isValid && dimensionInfo.message && (
-              <div className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-md mb-2">
-                ⚠️ {dimensionInfo.message}
-              </div>
-            )}
             
             {/* Información de stock mejorada */}
             <div className="flex items-center justify-between">

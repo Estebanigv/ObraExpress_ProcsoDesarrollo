@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NavbarSimple } from '@/components/navbar-simple';
 import TransbankService from '@/modules/checkout/services/transbank';
+import { useCart } from '@/contexts/CartContext';
 
 interface PaymentResult {
   success: boolean;
@@ -26,6 +27,7 @@ interface PaymentResult {
 function PaymentReturnContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { clearCart } = useCart();
   const [result, setResult] = useState<PaymentResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -72,6 +74,10 @@ function PaymentReturnContent() {
 
         if (response.ok) {
           setResult(data);
+          // Limpiar el carrito SOLO si el pago fue aprobado
+          if (data.approved) {
+            clearCart();
+          }
         } else {
           setResult({
             success: false,
