@@ -11,6 +11,7 @@ import { RealTimePriceIndicator } from "@/modules/products/components/real-time-
 import { AuthGuard } from "@/components/auth-guard";
 import { CriticalResourcePreloader } from "@/components/critical-resource-preloader";
 import { PerformanceOptimizer, CriticalCSS, ResourcePreloader } from "@/components/performance-optimizer";
+import SimpleChatAI from "@/components/ai/SimpleChatAI";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -288,6 +289,7 @@ export default function RootLayout({
               <AuthGuard requireAuth={false} redirectTo="/login">
                 {children}
                 <ConditionalComponents />
+                <SimpleChatAI />
               </AuthGuard>
             </CartProvider>
           </AuthProvider>

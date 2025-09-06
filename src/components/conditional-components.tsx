@@ -49,7 +49,7 @@ export function ConditionalComponents({ hideForModal = false }: { hideForModal?:
   return (
     <>
       <CartModal />
-      <FloatingChatSimple />
+      {/* <FloatingChatSimple /> - DESHABILITADO: Usando SmartGuide con OpenAI en su lugar */}
     </>
   );
 }

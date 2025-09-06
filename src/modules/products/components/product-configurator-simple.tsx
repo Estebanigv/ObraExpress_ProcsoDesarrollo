@@ -329,9 +329,23 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
   const uniqueThicknesses = productGroup.espesores || [];
   const uniqueDimensions = productGroup.dimensiones || [];
   
-  // Obtener anchos y largos únicos desde las variantes
+  // Obtener anchos únicos desde las variantes
   const uniqueAnchos = [...new Set(productGroup.variantes?.map(v => v.ancho).filter(Boolean))];
-  const uniqueLargos = [...new Set(productGroup.variantes?.map(v => v.largo).filter(Boolean))];
+  
+  // Obtener largos disponibles según el ancho seleccionado
+  const getAvailableLargos = () => {
+    if (!selectedAncho) {
+      return [...new Set(productGroup.variantes?.map(v => v.largo).filter(Boolean))];
+    }
+    
+    // Filtrar variantes por ancho seleccionado
+    const variantesConAncho = productGroup.variantes?.filter(v => v.ancho === selectedAncho);
+    
+    // Obtener largos únicos de esas variantes
+    return [...new Set(variantesConAncho?.map(v => v.largo).filter(Boolean))];
+  };
+  
+  const uniqueLargos = getAvailableLargos();
 
 
   // Filtrado dinámico: obtener dimensiones disponibles para el espesor seleccionado
@@ -421,7 +435,18 @@ function ProductConfiguratorSimple({ productGroup, className = '' }: ProductConf
   const handleAnchoChange = (ancho: string) => {
     setSelectedAncho(ancho);
     
-    const newVariant = findVariant(selectedColor, selectedEspesor, ancho, selectedLargo);
+    // Verificar si el largo actual sigue siendo válido para el nuevo ancho
+    const variantesConNuevoAncho = productGroup.variantes?.filter(v => v.ancho === ancho);
+    const largosDisponibles = [...new Set(variantesConNuevoAncho?.map(v => v.largo).filter(Boolean))];
+    
+    // Si el largo actual no está disponible con el nuevo ancho, seleccionar el primero disponible
+    let nuevoLargo = selectedLargo;
+    if (!largosDisponibles.includes(selectedLargo) && largosDisponibles.length > 0) {
+      nuevoLargo = largosDisponibles[0];
+      setSelectedLargo(nuevoLargo);
+    }
+    
+    const newVariant = findVariant(selectedColor, selectedEspesor, ancho, nuevoLargo);
     setSelectedVariant(newVariant);
   };
 
