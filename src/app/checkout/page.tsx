@@ -11,6 +11,7 @@ import { CartThumbnail } from '@/components/optimized-image';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import ProductConfiguratorSimple from '@/modules/products/components/product-configurator-simple';
 import LocationMap from '@/components/maps/LocationMap';
+import AlveolarRecommendations from '@/components/AlveolarRecommendations';
 
 interface CheckoutFormData {
   nombre: string;
@@ -914,6 +915,9 @@ function CheckoutPageContent() {
               </form>
             </div>
 
+            {/* Solución Completa para tu Pedido */}
+            <AlveolarRecommendations showInCheckout={true} className="mb-8" />
+
             {/* Productos Complementarios */}
             <div className="bg-white rounded-lg shadow-sm p-8">
               <div className="mb-8">
@@ -1808,6 +1812,7 @@ function CheckoutPageContent() {
                   </div>
                 )}
               </div>
+
 
               {/* Totales */}
               <div className="border-t border-gray-200 pt-4 space-y-2">

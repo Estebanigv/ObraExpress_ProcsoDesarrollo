@@ -10,8 +10,9 @@ import { ConditionalComponents } from "@/components/conditional-components";
 import { RealTimePriceIndicator } from "@/modules/products/components/real-time-price-indicator";
 import { AuthGuard } from "@/components/auth-guard";
 import { CriticalResourcePreloader } from "@/components/critical-resource-preloader";
-import { PerformanceOptimizer, CriticalCSS, ResourcePreloader } from "@/components/performance-optimizer";
-import SimpleChatAI from "@/components/ai/SimpleChatAI";
+import { PerformanceOptimizer, ResourcePreloader } from "@/components/performance-optimizer";
+import { CriticalCSS } from "@/components/critical-css";
+import SimpleChatAIWrapper from "@/components/ai/SimpleChatAIWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -289,7 +290,7 @@ export default function RootLayout({
               <AuthGuard requireAuth={false} redirectTo="/login">
                 {children}
                 <ConditionalComponents />
-                <SimpleChatAI />
+                <SimpleChatAIWrapper />
               </AuthGuard>
             </CartProvider>
           </AuthProvider>
